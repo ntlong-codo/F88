@@ -7,10 +7,10 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <style>
     body { background-color: #f4f6f9; font-size: 15px; }
-    .customer-card { background: #fff; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); margin-bottom: 12px; padding: 14px; border-left: 5px solid #0d6efd; cursor: pointer; }
+    .customer-card { background: #fff; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); margin-bottom: 12px; padding: 14px; border-left: 5px solid #0d6efd; }
     .row-check-ao { border-left-color: #6f42c1 !important; background-color: #fbf7ff !important; } 
     .row-check-gps { border-left-color: #198754 !important; background-color: #f2f9f4 !important; } 
-    .sub-section { border-left: 3px solid #0d6efd; padding-left: 10px; margin-top: 10px; }
+    .sub-section { border-left: 3px solid #0d6efd; padding-left: 10px; margin-top: 8px; }
     #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 1055; left: 20px; }
     #toast-container .toast { width: 100%; max-width: 100%; }
     
@@ -20,6 +20,8 @@
       display: flex; align-items: center; justify-content: center;
     }
     .btn, .form-select, .form-control { min-height: 42px; }
+    .clickable-edit { cursor: pointer; }
+    .clickable-edit:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -118,6 +120,13 @@
           <option value="Bạo lực">Bạo lực</option>
         </select>
       </div>
+
+      <!-- BỔ SUNG LỌC THEO THƯỜNG TRÚ -->
+      <div class="mb-3">
+        <label class="form-label fw-bold small">🏠 Lọc theo Thường Trú:</label>
+        <input type="text" id="filterThuongTru" class="form-control" placeholder="Nhập tên xã, huyện, tỉnh..." oninput="filterData(); updateFilterCount();">
+      </div>
+
       <div class="mb-3">
         <label class="form-label fw-bold small">Trạng thái Check:</label>
         <select id="filterCheck" class="form-select" onchange="filterData(); updateFilterCount();">
@@ -160,7 +169,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbz-FGdBMydSvtKWNhvhK2AfjHEh8sG7umT6XCl4RE8JHvQ8b3pZBh4Q-AV82p9hk3kC/exec"; 
+    const API_URL = "https://script.google.com/macros/s/AKfycbzFAqD9A4puhEqUd4tK2AiAIomat8nJd2r2YTPFap682q_SqF5ZqZiM6F0sVrb0PGv9/exec"; 
     const AUTH_KEY = "app_auth_session";
     const AUTH_PASS = "124985";
     const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -253,6 +262,7 @@
       if(document.getElementById("filterTrangThaiHd").value) count++;
       if(document.getElementById("filterTimNha").value) count++;
       if(document.getElementById("filterDoKho").value) count++;
+      if(document.getElementById("filterThuongTru").value) count++;
       if(document.getElementById("filterCheck").value) count++;
       document.getElementById("activeFilterCount").innerText = count;
     }
@@ -263,6 +273,7 @@
       const fTrangThai = document.getElementById("filterTrangThaiHd").value;
       const fTimNha = document.getElementById("filterTimNha").value;
       const fDoKho = document.getElementById("filterDoKho").value;
+      const fThuongTru = document.getElementById("filterThuongTru").value.toLowerCase();
       const fCheck = document.getElementById("filterCheck").value;
 
       let filtered = allRawData.filter(item => {
@@ -274,6 +285,8 @@
         if (fTrangThai && item.Trang_thai_hd !== fTrangThai) return false;
         if (fTimNha && item.Trang_thai_tim_nha !== fTimNha) return false;
         if (fDoKho && item.Muc_do_kho !== fDoKho) return false;
+        if (fThuongTru && !(item.WARD_HO_KHAU || '').toLowerCase().includes(fThuongTru)) return false;
+        
         if (fCheck === 'DaCheckGps' && item.Check_GPS !== 'Đã Check GPS') return false;
         if (fCheck === 'DaCheckAo' && item.Check_Ao !== 'Đã Check Áo') return false;
         if (fCheck === 'ChuaCheck' && (item.Check_GPS === 'Đã Check GPS' || item.Check_Ao === 'Đã Check Áo')) return false;
@@ -304,16 +317,18 @@
         const gpsBadge = countGps > 0 ? `<span class="badge bg-primary">${countGps} GPS</span>` : `<span class="badge bg-light text-dark">0 GPS</span>`;
         const collapseId = `collapseCard_${idx}`;
 
+        const formattedPaid = item.So_tien_thanh_toan ? Number(item.So_tien_thanh_toan).toLocaleString() + ' VNĐ' : 'Chưa';
+
         return `
           <div class="customer-card ${cardStyleClass}">
             <!-- Dòng 1: Tên, Số HĐ và Tìm nhà ở góc phải -->
-            <div class="d-flex justify-content-between align-items-start mb-2 gap-2" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
+            <div class="d-flex justify-content-between align-items-start mb-2 gap-2">
               <div>
                 <h6 class="fw-bold text-primary mb-1">${item.Ten_khach_hang || 'Chưa có tên'}</h6>
                 <small class="text-muted">HĐ: <code>${item.so_hd || ''}</code></small>
-                <button class="btn btn-sm btn-link p-0 ms-1" onclick="event.stopPropagation(); copyToClipboard('${item.so_hd}')" title="Copy">📋</button>
+                <button class="btn btn-sm btn-link p-0 ms-1" onclick="copyToClipboard('${item.so_hd}')" title="Copy">📋</button>
               </div>
-              <div style="width: 130px;" onclick="event.stopPropagation();">
+              <div style="width: 135px;">
                 <select class="form-select form-select-sm fw-bold border-primary" onchange="updateFieldAndNotify(${item.rowIndex}, 'Trang_thai_tim_nha', this.value)">
                   <option value="Chưa tìm" ${item.Trang_thai_tim_nha === 'Chưa tìm' ? 'selected' : ''}>⚪ Chưa tìm</option>
                   <option value="Đã tới Ấp" ${item.Trang_thai_tim_nha === 'Đã tới Ấp' ? 'selected' : ''}>🟡 Đã tới Ấp</option>
@@ -326,10 +341,10 @@
             </div>
 
             <!-- Dòng 2: SĐT và Khả Năng Thanh Toán / Độ Khó -->
-            <div class="row g-2 mb-2" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
+            <div class="row g-2 mb-2">
               <div class="col-12 text-secondary small">📞 SĐT: <b>${item.sdt || '---'}</b> | Kỳ: <b>${item.Thang || '---'}</b></div>
               
-              <div class="col-6" onclick="event.stopPropagation();">
+              <div class="col-6">
                 <label class="small text-muted fw-bold mb-0">Khả Năng Thanh Toán:</label>
                 <select class="form-select form-select-sm" onchange="updateFieldAndNotify(${item.rowIndex}, 'Trang_thai_hd', this.value)">
                   <option value="Chưa biết" ${item.Trang_thai_hd === 'Chưa biết' ? 'selected' : ''}>⚪ Chưa biết</option>
@@ -342,7 +357,7 @@
                 </select>
               </div>
 
-              <div class="col-6" onclick="event.stopPropagation();">
+              <div class="col-6">
                 <label class="small text-muted fw-bold mb-0">Độ khó:</label>
                 <select class="form-select form-select-sm" onchange="updateFieldAndNotify(${item.rowIndex}, 'Muc_do_kho', this.value)">
                   <option value="Chưa biết" ${item.Muc_do_kho === 'Chưa biết' ? 'selected' : ''}>⚪ Chưa biết</option>
@@ -355,44 +370,74 @@
               </div>
             </div>
 
-            <!-- HIỂN THỊ TRỰC TIẾP GHI CHÚ & LIÊN HỆ (KHÔNG ẨN NỮA) -->
-            <div class="bg-light p-2 rounded mb-2 border" onclick="event.stopPropagation();">
-              <div class="row g-1">
-                <div class="col-12">
-                  <label class="small fw-bold text-success mb-0">📝 Ghi chú:</label>
+            <!-- HIỂN THỊ ĐỊA CHỈ TRỰC TIẾP (KHÔNG ẨN) -->
+            <div class="sub-section mb-2 text-secondary small">
+              <b>📍 Địa chỉ:</b><br>
+              - Thường trú: <b>${item.WARD_HO_KHAU || '---'}</b><br>
+              - Tạm trú: ${item.WARD_TAM_TRU || '---'}<br>
+              - Shop: ${item.SHOPNAME || '---'}
+            </div>
+
+            <!-- CHUYỂN GHI CHÚ, LIÊN HỆ, THANH TOÁN SANG DẠNG CHỮ + EDIT INLINE -->
+            <div class="my-2 pt-2 border-top small">
+              
+              <!-- GHI CHÚ -->
+              <div class="mb-1">
+                <span class="fw-bold text-success">📝 Ghi chú:</span>
+                <span id="text_note_${item.rowIndex}">${item.Ghi_chu || '<i>Chưa có</i>'}</span>
+                <button class="btn btn-sm p-0 ms-1 text-primary" onclick="toggleEdit('${item.rowIndex}', 'note')">✏️</button>
+                
+                <div id="box_note_${item.rowIndex}" class="d-none mt-1">
                   <div class="input-group input-group-sm">
-                    <input type="text" id="note_${item.rowIndex}" class="form-control" value="${item.Ghi_chu || ''}">
-                    <button class="btn btn-success" type="button" onclick="saveSubData(${item.rowIndex}, 'Ghi_chu', 'note_${item.rowIndex}', 'Đã lưu ghi chú!')">Lưu</button>
-                  </div>
-                </div>
-                <div class="col-12 mt-1">
-                  <label class="small fw-bold text-danger mb-0">👤 Người liên hệ:</label>
-                  <div class="input-group input-group-sm">
-                    <input type="text" id="contact_${item.rowIndex}" class="form-control" value="${item.Nguoi_lien_he || ''}">
-                    <button class="btn btn-danger" type="button" onclick="saveSubData(${item.rowIndex}, 'Nguoi_lien_he', 'contact_${item.rowIndex}', 'Đã lưu liên hệ!')">Lưu</button>
+                    <input type="text" id="input_note_${item.rowIndex}" class="form-control" value="${item.Ghi_chu || ''}">
+                    <button class="btn btn-success" onclick="saveInlineEdit('${item.rowIndex}', 'Ghi_chu', 'input_note_${item.rowIndex}', 'note')">Lưu</button>
+                    <button class="btn btn-secondary" onclick="toggleEdit('${item.rowIndex}', 'note')">Hủy</button>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <!-- NÚT ĐÃ THANH TOÁN + NHẬP SỐ TIỀN -->
-            <div class="bg-white p-2 rounded mb-2 border border-success" onclick="event.stopPropagation();">
-              <label class="small fw-bold text-success mb-1">💰 Đã thanh toán (Nhập số tiền):</label>
-              <div class="input-group input-group-sm">
-                <input type="number" id="paid_${item.rowIndex}" class="form-control" value="${item.So_tien_thanh_toan || ''}" placeholder="Nhập số tiền...">
-                <button class="btn btn-success fw-bold" type="button" onclick="savePaidAmount(${item.rowIndex})">Xác nhận TT</button>
+              <!-- NGƯỜI LIÊN HỆ -->
+              <div class="mb-1">
+                <span class="fw-bold text-danger">👤 Liên hệ:</span>
+                <span id="text_contact_${item.rowIndex}">${item.Nguoi_lien_he || '<i>Chưa có</i>'}</span>
+                <button class="btn btn-sm p-0 ms-1 text-primary" onclick="toggleEdit('${item.rowIndex}', 'contact')">✏️</button>
+
+                <div id="box_contact_${item.rowIndex}" class="d-none mt-1">
+                  <div class="input-group input-group-sm">
+                    <input type="text" id="input_contact_${item.rowIndex}" class="form-control" value="${item.Nguoi_lien_he || ''}">
+                    <button class="btn btn-danger" onclick="saveInlineEdit('${item.rowIndex}', 'Nguoi_lien_he', 'input_contact_${item.rowIndex}', 'contact')">Lưu</button>
+                    <button class="btn btn-secondary" onclick="toggleEdit('${item.rowIndex}', 'contact')">Hủy</button>
+                  </div>
+                </div>
               </div>
+
+              <!-- ĐÃ THANH TOÁN -->
+              <div>
+                <span class="fw-bold text-success">💰 Đã TT:</span>
+                <span id="text_paid_${item.rowIndex}" class="fw-bold text-dark">${formattedPaid}</span>
+                <button class="btn btn-sm p-0 ms-1 text-primary" onclick="toggleEdit('${item.rowIndex}', 'paid')">✏️</button>
+
+                <div id="box_paid_${item.rowIndex}" class="d-none mt-1">
+                  <div class="input-group input-group-sm">
+                    <input type="number" id="input_paid_${item.rowIndex}" class="form-control" value="${item.So_tien_thanh_toan || ''}" placeholder="Nhập số tiền...">
+                    <button class="btn btn-success" onclick="savePaidAmountInline('${item.rowIndex}')">Lưu</button>
+                    <button class="btn btn-secondary" onclick="toggleEdit('${item.rowIndex}', 'paid')">Hủy</button>
+                  </div>
+                </div>
+              </div>
+
             </div>
 
+            <!-- DÒNG BẤM MỞ CHI TIẾT GPS -->
             <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
               <div>${gpsBadge}</div>
               <button class="btn btn-sm btn-outline-primary" type="button">
-                🔽 Mở GPS & Thao tác
+                🔽 Thao tác Check & GPS
               </button>
             </div>
 
             <!-- PHẦN THU GỌN CHỈ CHỨA GPS VÀ CHECK -->
-            <div class="collapse mt-2" id="${collapseId}" onclick="event.stopPropagation();">
+            <div class="collapse mt-2" id="${collapseId}">
               <div class="p-2 bg-light rounded border">
                 <div class="mb-3">
                   <div class="small fw-bold mb-1">⚡ Xác thực thực địa:</div>
@@ -402,15 +447,8 @@
                   </div>
                 </div>
 
-                <div class="sub-section mb-2 text-secondary small">
-                  <b>📍 Địa chỉ:</b><br>
-                  - Thường trú: ${item.WARD_HO_KHAU || '---'}<br>
-                  - Tạm trú: ${item.WARD_TAM_TRU || '---'}<br>
-                  - Shop: ${item.SHOPNAME || '---'}
-                </div>
-
                 <div class="sub-section">
-                  <div class="small fw-bold text-primary mb-1">🌐 Tọa độ GPS (1-5):</div>
+                  <div class="small fw-bold text-primary mb-1">🌐 Quản lý Tọa độ GPS (1-5):</div>
                   ${renderGpsInputsMobile(item)}
                 </div>
               </div>
@@ -438,11 +476,40 @@
       return html;
     }
 
-    async function savePaidAmount(rowIndex) {
-      const val = document.getElementById(`paid_${rowIndex}`).value;
+    // ẨN / HIỆN Ô NHẬP LIỆU CHỈNH SỬA
+    function toggleEdit(rowIndex, type) {
+      const box = document.getElementById(`box_${type}_${rowIndex}`);
+      if (box) {
+        box.classList.toggle('d-none');
+      }
+    }
+
+    // LƯU CẢNH BÁO / GHI CHÚ / LIÊN HỆ CHỈNH SỬA TẠI CHỖ
+    async function saveInlineEdit(rowIndex, fieldName, inputId, type) {
+      const val = document.getElementById(inputId).value.trim();
+      toggleEdit(rowIndex, type);
+      
+      const item = allRawData.find(d => d.rowIndex == rowIndex);
+      if (item) item[fieldName] = val;
+
+      document.getElementById(`text_${type}_${rowIndex}`).innerHTML = val || '<i>Chưa có</i>';
+      await updateField(rowIndex, fieldName, val);
+      showToast("Đã cập nhật!");
+    }
+
+    // LƯU SỐ TIỀN THANH TOÁN CHỈNH SỬA TẠI CHỖ
+    async function savePaidAmountInline(rowIndex) {
+      const val = document.getElementById(`input_paid_${rowIndex}`).value;
+      toggleEdit(rowIndex, 'paid');
+
+      const item = allRawData.find(d => d.rowIndex == rowIndex);
+      if (item) item.So_tien_thanh_toan = val;
+
+      const formatted = val ? Number(val).toLocaleString() + ' VNĐ' : 'Chưa';
+      document.getElementById(`text_paid_${rowIndex}`).innerText = formatted;
+
       await updateField(rowIndex, 'So_tien_thanh_toan', val);
-      showToast(`Đã lưu số tiền thanh toán: ${Number(val).toLocaleString()} VNĐ`, "success");
-      loadCustomerData();
+      showToast(`Đã lưu số tiền thanh toán: ${formatted}`);
     }
 
     async function doCheckGps(rowIndex) {
@@ -511,6 +578,7 @@
       document.getElementById("filterTrangThaiHd").value = "";
       document.getElementById("filterTimNha").value = "";
       document.getElementById("filterDoKho").value = "";
+      document.getElementById("filterThuongTru").value = "";
       document.getElementById("filterCheck").value = "";
       updateFilterCount();
       filterData();
@@ -531,12 +599,6 @@
     async function updateField(rowIndex, fieldName, value) {
       const payload = { action: "updateCustomer", rowIndex: rowIndex, data: { [fieldName]: value } };
       await fetch(API_URL, { method: "POST", body: JSON.stringify(payload) });
-    }
-
-    async function saveSubData(rowIndex, fieldName, elementId, successMsg) {
-      const val = document.getElementById(elementId).value;
-      await updateField(rowIndex, fieldName, val);
-      showToast(successMsg);
     }
 
     async function saveGpsField(rowIndex, key) {
