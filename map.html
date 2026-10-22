@@ -36,7 +36,7 @@
         <h5 class="mb-0 fw-bold text-danger">🗺️ Bản Đồ GPS</h5>
       </div>
       <div class="d-flex gap-1 flex-wrap">
-        <button class="btn btn-danger btn-sm fw-bold" onclick="locateMyPosition()">📍 Vị Trí Của Tôi</button>
+        <button class="btn btn-danger btn-sm fw-bold" onclick="locateMyPosition()">📍 Định Vị</button>
         <button id="loadMapBtn" class="btn btn-success btn-sm fw-bold" onclick="loadMapDataAndRender()">🔄 Tải Dữ Liệu</button>
         <button class="btn btn-primary btn-sm fw-bold" type="button" data-bs-toggle="offcanvas" data-bs-target="#mapFilterDrawer">⚙️ Lọc</button>
       </div>
@@ -46,23 +46,26 @@
     <div id="map" class="shadow-sm"></div>
   </div>
 
-  <!-- OFFCANVAS DRAWER BỘ LỌC BẢN ĐỒ -->
+  <!-- OFFCANVAS DRAWER BỘ LỌC ĐẦY ĐỦ NHƯ INDEX -->
   <div class="offcanvas offcanvas-end" tabindex="-1" id="mapFilterDrawer">
     <div class="offcanvas-header bg-danger text-white">
-      <h5 class="offcanvas-title fw-bold">⚙️ Bộ Lọc Bản Đồ</h5>
+      <h5 class="offcanvas-title fw-bold">⚙️ Bộ Lọc Nâng Cao</h5>
       <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
     </div>
     <div class="offcanvas-body">
+      
       <div class="mb-3">
         <label class="form-label fw-bold small">Kỳ tháng:</label>
         <select id="mapMonth" class="form-select" onchange="filterAndRenderMap()">
           <option value="">-- Tất cả tháng --</option>
         </select>
       </div>
+
       <div class="mb-3">
         <label class="form-label fw-bold small">Tìm kiếm khách hàng:</label>
         <input type="text" id="mapSearch" class="form-control" placeholder="Tên khách, số HĐ, SĐT..." oninput="filterAndRenderMap()">
       </div>
+
       <div class="mb-3">
         <label class="form-label fw-bold small">Khả Năng Thanh Toán:</label>
         <select id="mapTrangThai" class="form-select" onchange="filterAndRenderMap()">
@@ -76,8 +79,9 @@
           <option value="Nhiều khả năng(Hẹn)">Nhiều khả năng(Hẹn)</option>
         </select>
       </div>
+
       <div class="mb-3">
-        <label class="form-label fw-bold small">Trạng thái Tìm nhà:</label>
+        <label class="form-label fw-bold small">Tìm nhà:</label>
         <select id="mapTimNha" class="form-select" onchange="filterAndRenderMap()">
           <option value="">Tất cả</option>
           <option value="Chưa tìm">Chưa tìm</option>
@@ -88,7 +92,36 @@
           <option value="Gặp khách hàng">Gặp khách hàng</option>
         </select>
       </div>
-      <button class="btn btn-outline-secondary w-100 mt-3" onclick="resetMapFilters()">🔄 Đặt lại lọc</button>
+
+      <div class="mb-3">
+        <label class="form-label fw-bold small">Độ khó khách hàng:</label>
+        <select id="mapDoKho" class="form-select" onchange="filterAndRenderMap()">
+          <option value="">Tất cả</option>
+          <option value="Chưa biết">Chưa biết</option>
+          <option value="Dễ làm việc">Dễ làm việc</option>
+          <option value="Trung lập">Trung lập</option>
+          <option value="Khó Tính">Khó Tính</option>
+          <option value="Không hợp tác">Không hợp tác</option>
+          <option value="Bạo lực">Bạo lực</option>
+        </select>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-bold small">🏠 Lọc theo Thường Trú:</label>
+        <input type="text" id="mapThuongTru" class="form-control" placeholder="Nhập tên xã, huyện, tỉnh..." oninput="filterAndRenderMap()">
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-bold small">Trạng thái Check:</label>
+        <select id="mapCheck" class="form-select" onchange="filterAndRenderMap()">
+          <option value="">Tất cả</option>
+          <option value="DaCheckGps">Đã Check GPS</option>
+          <option value="DaCheckAo">Đã Check Áo</option>
+          <option value="ChuaCheck">Chưa check</option>
+        </select>
+      </div>
+
+      <button class="btn btn-outline-danger w-100 mt-3" onclick="resetMapFilters()">🔄 Đặt lại bộ lọc</button>
     </div>
   </div>
 
@@ -100,20 +133,20 @@
     let map = null;
     let markersGroup = null;
     let myLocationMarker = null;
-    let myCoords = null; // Lưu tọa độ hiện tại của điện thoại
+    let myCoords = null; 
     let allMapData = [];
 
     window.onload = function() {
       initMap();
+      locateMyPosition(); 
       loadMapDataAndRender();
     };
 
     function initMap() {
       if (map !== null) return;
       
-      map = L.map('map').setView([10.030, 105.770], 12);
+      map = L.map('map').setView([10.030, 105.770], 13);
       
-      // Sử dụng OpenStreetMap chuẩn với dự phòng hiển thị nền
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '© OpenStreetMap'
@@ -122,12 +155,8 @@
       markersGroup = L.layerGroup().addTo(map);
     }
 
-    // ĐỊNH VỊ VỊ TRÍ ĐANG ĐỨNG CỦA NGƯỜI DÙNG
     function locateMyPosition() {
-      if (!navigator.geolocation) {
-        alert("Trình duyệt không hỗ trợ định vị GPS!");
-        return;
-      }
+      if (!navigator.geolocation) return;
 
       navigator.geolocation.getCurrentPosition(position => {
         const lat = position.coords.latitude;
@@ -145,18 +174,17 @@
         });
 
         myLocationMarker = L.marker([lat, lng], { icon: myIcon }).addTo(map)
-          .bindPopup("<b>📍 Bạn đang đứng ở đây</b>").openPopup();
+          .bindPopup("<b>📍 Bạn đang đứng ở đây</b>");
 
         map.setView([lat, lng], 15);
-        filterAndRenderMap(); // Vẽ lại để cập nhật khoảng cách km
-      }, () => {
-        alert("Không thể lấy được vị trí hiện tại của bạn. Vui lòng bật GPS!");
-      });
+        filterAndRenderMap();
+      }, (error) => {
+        console.warn("GPS error: ", error.message);
+      }, { enableHighAccuracy: true });
     }
 
-    // HÀM TÍNH KHOẢNG CÁCH (KM) GIỮA 2 ĐIỂM TỌA ĐỘ
     function calculateDistance(lat1, lon1, lat2, lon2) {
-      const R = 6371; // Bán kính trái đất tính bằng km
+      const R = 6371; 
       const dLat = (lat2 - lat1) * Math.PI / 180;
       const dLon = (lon2 - lon1) * Math.PI / 180;
       const a = 
@@ -164,7 +192,7 @@
         Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
         Math.sin(dLon/2) * Math.sin(dLon/2);
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      return (R * c).toFixed(2); // Trả về số km (làm tròn 2 chữ số)
+      return (R * c).toFixed(2); 
     }
 
     async function loadMapDataAndRender() {
@@ -208,6 +236,9 @@
       const keyword = document.getElementById("mapSearch").value.toLowerCase();
       const fTrangThai = document.getElementById("mapTrangThai").value;
       const fTimNha = document.getElementById("mapTimNha").value;
+      const fDoKho = document.getElementById("mapDoKho").value;
+      const fThuongTru = document.getElementById("mapThuongTru").value.toLowerCase();
+      const fCheck = document.getElementById("mapCheck").value;
 
       const gpsKeys = ['GPS_Chinh', 'GPS_1', 'GPS_2', 'GPS_3', 'GPS_4', 'GPS_5'];
 
@@ -219,11 +250,16 @@
         }
         if (fTrangThai && item.Trang_thai_hd !== fTrangThai) return;
         if (fTimNha && item.Trang_thai_tim_nha !== fTimNha) return;
+        if (fDoKho && item.Muc_do_kho !== fDoKho) return;
+        if (fThuongTru && !(item.WARD_HO_KHAU || '').toLowerCase().includes(fThuongTru)) return;
+
+        if (fCheck === 'DaCheckGps' && item.Check_GPS !== 'Đã Check GPS') return;
+        if (fCheck === 'DaCheckAo' && item.Check_Ao !== 'Đã Check Áo') return;
+        if (fCheck === 'ChuaCheck' && (item.Check_GPS === 'Đã Check GPS' || item.Check_Ao === 'Đã Check Áo')) return;
 
         const isCheckedGps = item.Check_GPS === 'Đã Check GPS';
         const isPaid = item.So_tien_thanh_toan && Number(item.So_tien_thanh_toan) > 0;
         
-        // Nếu đã thanh toán -> Làm mờ điểm đi (opacity: 0.35), ngược lại sáng rõ (0.9)
         const markerOpacity = isPaid ? 0.35 : 0.9;
         const markerBgColor = isCheckedGps ? '#198754' : '#0d6efd';
 
@@ -237,7 +273,6 @@
               const labelNum = key === 'GPS_Chinh' ? 'C' : String(idx);
               const labelName = key === 'GPS_Chinh' ? 'GPS Chính' : `GPS ${idx}`;
 
-              // Tính khoảng cách nếu đã định vị vị trí hiện tại
               let distanceHtml = '';
               if (myCoords) {
                 const dist = calculateDistance(myCoords.lat, myCoords.lng, lat, lng);
@@ -263,6 +298,8 @@
                   <b>SĐT:</b> ${item.sdt || '---'}<br>
                   <b>Khả năng:</b> ${item.Trang_thai_hd || 'Chưa biết'}<br>
                   <b>Tìm nhà:</b> ${item.Trang_thai_tim_nha || 'Chưa tìm'}<br>
+                  <b>Độ khó:</b> ${item.Muc_do_kho || 'Chưa biết'}<br>
+                  <b>Thường trú:</b> ${item.WARD_HO_KHAU || '---'}<br>
                   <b>Đã TT:</b> ${isPaid ? Number(item.So_tien_thanh_toan).toLocaleString() + ' VNĐ' : 'Chưa'}<br>
                   <hr class="my-1">
                   <a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" class="btn btn-sm btn-danger text-white w-100 fw-bold mt-1 p-2" style="font-size:13px;">🧭 DẪN ĐƯỜNG GOOGLE MAPS</a>
@@ -280,6 +317,9 @@
       document.getElementById("mapSearch").value = "";
       document.getElementById("mapTrangThai").value = "";
       document.getElementById("mapTimNha").value = "";
+      document.getElementById("mapDoKho").value = "";
+      document.getElementById("mapThuongTru").value = "";
+      document.getElementById("mapCheck").value = "";
       filterAndRenderMap();
     }
   </script>
