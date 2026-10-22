@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bản Đồ GPS & Danh Sách - Thu Hồi Nợ</title>
+  <title>Bản Đồ GPS & Danh Sách Gần Nhất - Thu Hồi Nợ</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     body { background-color: #f4f6f9; font-size: 14px; margin: 0; padding: 5px; height: 100vh; overflow: hidden; }
-    .main-wrapper { display: flex; height: 95vh; gap: 8px; }
+    .main-wrapper { display: flex; height: 93vh; gap: 8px; }
     
-    /* BÊN TRÁI: DANH SÁCH & TREE GPS */
-    .sidebar-panel { width: 420px; background: #fff; border-radius: 12px; border: 1px solid #ccc; display: flex; flex-direction: column; padding: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+    /* BÊN TRÁI: DANH SÁCH TOÀN BỘ KHÁCH HÀNG & TREE GPS */
+    .sidebar-panel { width: 440px; background: #fff; border-radius: 12px; border: 1px solid #ccc; display: flex; flex-direction: column; padding: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
     .customer-item-card { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 10px; margin-bottom: 8px; }
     .gps-tree-item { cursor: pointer; padding: 4px 8px; margin: 2px 0; background: #e9ecef; border-radius: 4px; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
     .gps-tree-item:hover { background: #0d6efd; color: white; }
@@ -24,7 +24,7 @@
     .gps-badge-icon { background: transparent; border: none; }
     .gps-marker-num {
       width: 26px; height: 26px; border-radius: 50%; color: white; font-weight: bold; font-size: 11px;
-      display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px (0,0,0,0.3); border: 2px solid white;
+      display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.3); border: 2px solid white;
     }
     .my-location-marker { background-color: #dc3545; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
     
@@ -43,14 +43,14 @@
     <div class="d-flex justify-content-between align-items-center mb-2 bg-white p-2 rounded shadow-sm flex-wrap gap-2">
       <div class="d-flex align-items-center">
         <a href="index.html" class="btn btn-outline-dark btn-sm me-2">⬅️ Danh sách</a>
-        <h5 class="mb-0 fw-bold text-danger">🗺️ Bản Đồ & Điều Hướng</h5>
+        <h5 class="mb-0 fw-bold text-danger">🗺️ Bản Đồ & Định Vị Gần Nhất</h5>
       </div>
-      <!-- KHUNG THỐNG KÊ CỐ ĐỊNH -->
+      <!-- KHUNG THỐNG KÊ -->
       <div class="bg-light px-3 py-1 rounded border text-secondary fw-bold small">
-        📊 Tổng số khách: <span id="statCustomers" class="text-primary">0</span> | 📌 Tổng điểm GPS: <span id="statGpsPoints" class="text-success">0</span>
+        📊 Tổng khách: <span id="statCustomers" class="text-primary">0</span> | 📌 Tổng điểm GPS: <span id="statGpsPoints" class="text-success">0</span>
       </div>
       <div class="d-flex gap-1 flex-wrap">
-        <button class="btn btn-danger btn-sm fw-bold" onclick="locateMyPosition()">📍 Định Vị</button>
+        <button class="btn btn-danger btn-sm fw-bold" onclick="locateMyPosition()">📍 Định Vị Lại</button>
         <button id="loadMapBtn" class="btn btn-success btn-sm fw-bold" onclick="loadMapDataAndRender()">🔄 Tải Dữ Liệu</button>
         <button class="btn btn-primary btn-sm fw-bold" type="button" data-bs-toggle="offcanvas" data-bs-target="#mapFilterDrawer">⚙️ Lọc</button>
       </div>
@@ -59,17 +59,11 @@
     <!-- KHUNG CHIA ĐÔI: DANH SÁCH BÊN TRÁI - BẢN ĐỒ BÊN PHẢI -->
     <div class="main-wrapper">
       
-      <!-- SIDEBAR BÊN TRÁI: DANH SÁCH KHÁCH HÀNG PHÂN TRANG + TREE GPS -->
+      <!-- SIDEBAR BÊN TRÁI: HIỂN THỊ TOÀN BỘ DANH SÁCH & SẮP XẾP GẦN NHẤT -->
       <div class="sidebar-panel">
-        <h6 class="fw-bold text-primary mb-2">📋 Danh Sách Khách Hàng & 8 Điểm GPS</h6>
+        <h6 class="fw-bold text-primary mb-2">📋 Danh Sách Khách (Sắp xếp từ gần đến xa)</h6>
         <div id="sidebarCustomerList" style="flex-grow: 1; overflow-y: auto; padding-right: 4px;">
           <div class="text-center text-muted py-4">Đang tải dữ liệu...</div>
-        </div>
-        <!-- PHÂN TRANG (1 KHÁCH / TRANG) -->
-        <div class="d-flex justify-content-between align-items-center pt-2 border-top mt-2">
-          <button class="btn btn-outline-primary btn-sm fw-bold" onclick="changePage(-1)">⬅️ Trước</button>
-          <span class="small fw-bold text-secondary" id="pageIndicator">Trang 0 / 0</span>
-          <button class="btn btn-outline-primary btn-sm fw-bold" onclick="changePage(1)">Sau ➡️</button>
         </div>
       </div>
 
@@ -123,13 +117,7 @@
     let myCoords = null; 
     let allMapData = [];
     let filteredMapData = [];
-    
-    // PHÂN TRANG DANH SÁCH BÊN TRÁI (1 khách / trang)
-    let currentPage = 1;
-    const itemsPerPage = 1;
-
-    // Lưu danh sách các marker trên bản đồ để dễ tra cứu khi click từ tree menu
-    let markerRegistry = {}; // key: "rowIndex_gpsKey", value: leafletMarker object
+    let markerRegistry = {}; // Lưu trữ marker để trỏ tới khi click
 
     window.onload = function() {
       initMap();
@@ -154,8 +142,9 @@
         if (myLocationMarker) map.removeLayer(myLocationMarker);
         myLocationMarker = L.marker([myCoords.lat, myCoords.lng], {
           icon: L.divIcon({className: 'my-location-marker', iconSize: [16,16], iconAnchor: [8,8]})
-        }).addTo(map).bindPopup("<b>📍 Bạn đang đứng ở đây</b>");
+        }).addTo(map).bindPopup("<b>📍 Vị trí của bạn</b>");
         map.setView([myCoords.lat, myCoords.lng], 15);
+        filterAndRenderMap(); // Sắp xếp lại danh sách theo khoảng cách mới nhất
       }, () => {}, { enableHighAccuracy: true });
     }
 
@@ -164,7 +153,7 @@
       const dLat = (lat2 - lat1) * Math.PI / 180;
       const dLon = (lon2 - lon1) * Math.PI / 180;
       const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
-      return (R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)))).toFixed(2);
+      return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
     }
 
     async function loadMapDataAndRender() {
@@ -232,19 +221,29 @@
         if (fTrangThai && item.Trang_thai_hd !== fTrangThai) return;
         if (fTimNha && item.Trang_thai_tim_nha !== fTimNha) return;
 
-        // Kiểm tra xem khách có ít nhất 1 điểm GPS hợp lệ không
+        // Tính khoảng cách gần nhất trong các điểm GPS của khách này so với vị trí hiện tại
+        let minDistance = Infinity;
         let hasValidGps = false;
+
         gpsKeys.forEach(key => {
-          if (item[key] && String(item[key]).includes(',')) {
-            let p = String(item[key]).split(',');
-            if (!isNaN(parseFloat(p[0])) && !isNaN(parseFloat(p[1]))) {
+          const rawVal = item[key];
+          if (rawVal && String(rawVal).includes(',')) {
+            let p = String(rawVal).split(',');
+            let lat = parseFloat(p[0].trim()); 
+            let lng = parseFloat(p[1].trim());
+            
+            if (!isNaN(lat) && !isNaN(lng)) {
               hasValidGps = true;
+              if (myCoords) {
+                let dist = calculateDistance(myCoords.lat, myCoords.lng, lat, lng);
+                if (dist < minDistance) minDistance = dist;
+              }
             }
           }
         });
 
         if (hasValidGps) {
-          filteredMapData.push(item);
+          filteredMapData.push({ ...item, _nearestDist: minDistance });
         }
 
         const isPaid = item.So_tien_thanh_toan && Number(item.So_tien_thanh_toan) > 0;
@@ -285,78 +284,68 @@
                 </div>
               `);
               markersGroup.addLayer(marker);
-              
-              // Đăng ký marker để gọi lại khi click từ sidebar
               markerRegistry[`${item.rowIndex}_${key}`] = { marker: marker, latlng: [lat, lng] };
             }
           }
         });
       });
 
-      // CẬP NHẬT THỐNG KÊ CỐ ĐỊNH PHÍA TRÊN
+      // Sắp xếp danh sách khách hàng bên trái theo khoảng cách gần nhất
+      filteredMapData.sort((a, b) => a._nearestDist - b._nearestDist);
+
       document.getElementById("statCustomers").innerText = filteredMapData.length;
       document.getElementById("statGpsPoints").innerText = totalGpsCount;
 
-      currentPage = 1;
-      renderSidebarPagination();
+      renderSidebarList();
     }
 
-    // ĐIỀU HƯỚNG PHÂN TRANG (1 KHÁCH / TRANG)
-    fnChangePage = function(direction) {
-      const totalPages = filteredMapData.length;
-      if (totalPages === 0) return;
-      currentPage += direction;
-      if (currentPage < 1) currentPage = 1;
-      if (currentPage > totalPages) currentPage = totalPages;
-      renderSidebarPagination();
-    }
-    window.changePage = fnChangePage;
-
-    function renderSidebarPagination() {
+    // HIỂN THỊ TOÀN BỘ DANH SÁCH BÊN TRÁI
+    function renderSidebarList() {
       const container = document.getElementById("sidebarCustomerList");
-      const totalPages = filteredMapData.length;
       
-      document.getElementById("pageIndicator").innerText = `Trang ${totalPages > 0 ? currentPage : 0} / ${totalPages}`;
-
-      if (totalPages === 0) {
-        container.innerHTML = `<div class="text-center text-muted py-4">Không có khách hàng nào phù hợp bộ lọc.</div>`;
+      if (filteredMapData.length === 0) {
+        container.innerHTML = `<div class="text-center text-muted py-4">Không tìm thấy khách hàng nào phù hợp bộ lọc.</div>`;
         return;
       }
 
-      const item = filteredMapData[currentPage - 1];
       const gpsKeys = ['GPS_Chinh', 'GPS_1', 'GPS_2', 'GPS_3', 'GPS_4', 'GPS_5', 'GPS_AP_NEW', 'GPS_AP_OLD'];
       const gpsLabels = { 
         'GPS_Chinh': '📍 GPS Chính', 'GPS_1': '📍 GPS 1', 'GPS_2': '📍 GPS 2', 
-        'GPS_3': '📍 GPS 3', 'GPS_4': '📍 GPS 4', 'GPS_5': '📍 GPS 5', 
+        'GPS_3': '📍 GPS 3', 'GPS_4': 'GPS 4', 'GPS_5': 'GPS 5', 
         'GPS_AP_NEW': '🏡 GPS Ấp New', 'GPS_AP_OLD': '🏡 GPS Ấp Old' 
       };
 
-      // Xây dựng cây Tree View các điểm GPS có dữ liệu của khách này
-      let treeHtml = '';
-      gpsKeys.forEach(key => {
-        const val = item[key];
-        if (val && String(val).includes(',')) {
-          treeHtml += `
-            <div class="gps-tree-item" onclick="panToGpsMarker('${item.rowIndex}', '${key}')">
-              <span>${gpsLabels[key]}</span>
-              <small class="font-monospace text-muted">${val}</small>
-            </div>
-          `;
-        }
-      });
+      container.innerHTML = filteredMapData.map(item => {
+        let treeHtml = '';
+        gpsKeys.forEach(key => {
+          const val = item[key];
+          if (val && String(val).includes(',')) {
+            treeHtml += `
+              <div class="gps-tree-item" onclick="panToGpsMarker('${item.rowIndex}', '${key}')">
+                <span>${gpsLabels[key]}</span>
+                <small class="font-monospace text-muted">${val}</small>
+              </div>
+            `;
+          }
+        });
 
-      container.innerHTML = `
-        <div class="customer-item-card">
-          <div class="fw-bold text-primary mb-1">${item.Ten_khach_hang || 'Không tên'}</div>
-          <small class="text-muted">HĐ: <code>${item.so_hd || '---'}</code> | SĐT: ${item.sdt || '---'}</small><br>
-          <small class="text-secondary">Trạng thái: <b>${item.Trang_thai_hd || 'Chưa biết'}</b></small>
-          <hr class="my-2">
-          <div class="small fw-bold text-dark mb-1">🌲 Danh Sách Tọa Độ GPS Có Dữ Liệu:</div>
-          <div class="ps-2 border-start border-3 border-primary">
-            ${treeHtml || '<i class="text-muted small">Khách chưa có tọa độ GPS nào.</i>'}
+        let distStr = (item._nearestDist !== Infinity && item._nearestDist !== undefined) ? `<span class="badge bg-danger ms-1">📍 ${item._nearestDist.toFixed(2)} km</span>` : '';
+
+        return `
+          <div class="customer-item-card">
+            <div class="d-flex justify-content-between align-items-start">
+              <div class="fw-bold text-primary mb-1">${item.Ten_khach_hang || 'Không tên'} ${distStr}</div>
+              <small class="text-muted">HĐ: <code>${item.so_hd || '---'}</code></small>
+            </div>
+            <small class="text-secondary">SĐT: ${item.sdt || '---'} | Trạng thái: <b>${item.Trang_thai_hd || 'Chưa biết'}</b></small>
+            <hr class="my-2">
+            <div class="small fw-bold text-dark mb-1">🌲 Danh Sách Tọa Độ GPS (${item.So_tien_thanh_toan ? 'Đã TT' : 'Chưa TT'}):</div>
+            <div class="ps-2 border-start border-3 border-primary">
+              ${treeHtml || '<i class="text-muted small">Khách chưa có tọa độ GPS nào.</i>'}
+            </div>
           </div>
-        </div>
-      `;
+        `;
+      }).join('');
     }
 
     // BẤM VÀO ĐIỂM TRÊN TREE MENU SẼ PAN SANG BẢN ĐỒ VÀ MỞ POPUP
