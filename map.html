@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bản Đồ GPS - Mobile</title>
+  <title>Bản Đồ GPS - Thu Hồi Nợ</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    body { background-color: #f4f6f9; font-size: 15px; margin: 0; padding: 0; }
-    /* Sửa lỗi màn hình trắng: Đặt chiều cao cố định bằng pixel cho mobile */
-    #map { height: 78vh; width: 100%; border-radius: 12px; }
+    body { background-color: #f4f6f9; font-size: 15px; }
+    /* Đặt chiều cao rõ ràng cho bản đồ để không bị trắng màn hình */
+    #map { height: 82vh; width: 100%; border-radius: 12px; }
     
     #authOverlay {
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
       background: rgba(0, 0, 0, 0.85); z-index: 9999;
       display: flex; align-items: center; justify-content: center;
     }
-    .btn, .form-select, .form-control { min-height: 42px; }
+    .btn, .form-select, .form-control { min-height: 38px; }
   </style>
 </head>
 <body>
@@ -32,20 +32,21 @@
     </div>
   </div>
 
-  <div class="container-fluid p-2 d-none" id="mainContent">
+  <div class="container-fluid p-3 d-none" id="mainContent">
     
     <div class="d-flex justify-content-between align-items-center mb-2 bg-white p-2 rounded shadow-sm">
       <div class="d-flex align-items-center">
         <a href="index.html" class="btn btn-outline-dark btn-sm me-2">⬅️ Danh sách</a>
-        <h6 class="mb-0 fw-bold text-danger">🗺️ Bản Đồ GPS</h6>
+        <h5 class="mb-0 fw-bold text-danger">🗺️ Bản Đồ GPS Thực Địa</h5>
       </div>
       <div>
         <button class="btn btn-primary btn-sm fw-bold" type="button" data-bs-toggle="offcanvas" data-bs-target="#mapFilterDrawer">
-          ⚙️ Lọc
+          ⚙️ Lọc Bản Đồ
         </button>
       </div>
     </div>
 
+    <!-- KHUNG BẢN ĐỒ -->
     <div id="map" class="shadow-sm"></div>
   </div>
 
@@ -120,7 +121,8 @@
     const AUTH_PASS = "124985";
     const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
-    let map, markersGroup;
+    let map = null;
+    let markersGroup = null;
     let allMapData = [];
 
     window.onload = function() {
@@ -140,7 +142,11 @@
         if (authData.pass === AUTH_PASS && authData.expiry && now < authData.expiry) {
           document.getElementById("authOverlay").style.display = "none";
           document.getElementById("mainContent").classList.remove("d-none");
-          initMap();
+          
+          // Khởi tạo bản đồ sau khi khung hiển thị đã hiện hoàn toàn
+          setTimeout(() => {
+            initMap();
+          }, 150);
         } else {
           showLoginScreen();
         }
@@ -172,35 +178,44 @@
     }
 
     function initMap() {
-      map = L.map('map', { zoomControl: false }).setView([10.030, 105.770], 10);
-      L.control.zoom({ position: 'bottomright' }).addTo(map);
+      if (map !== null) {
+        map.invalidateSize();
+        return;
+      }
 
+      // Khởi tạo tâm bản đồ tại khu vực Việt Nam
+      map = L.map('map').setView([10.030, 105.770], 10);
+      
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap'
       }).addTo(map);
 
       markersGroup = L.layerGroup().addTo(map);
       loadMapData();
-      
-      // Fix lỗi Leaflet bị xám/trắng khi container ẩn lúc đầu qua overlay
-      setTimeout(() => { map.invalidateSize(); }, 300);
     }
 
     async function loadMapData() {
-      const resMonths = await fetch(`${API_URL}?action=getMonths`);
-      const jsonMonths = await resMonths.json();
-      const select = document.getElementById("mapMonth");
-      jsonMonths.months.forEach(m => {
-        select.innerHTML += `<option value="${m}">Kỳ tháng ${m}</option>`;
-      });
+      try {
+        const resMonths = await fetch(`${API_URL}?action=getMonths`);
+        const jsonMonths = await resMonths.json();
+        const select = document.getElementById("mapMonth");
+        if(jsonMonths.months) {
+          jsonMonths.months.forEach(m => {
+            select.innerHTML += `<option value="${m}">Kỳ tháng ${m}</option>`;
+          });
+        }
 
-      const resData = await fetch(`${API_URL}?action=getData`);
-      const jsonData = await resData.json();
-      allMapData = jsonData.data || [];
-      filterAndRenderMap();
+        const resData = await fetch(`${API_URL}?action=getData`);
+        const jsonData = await resData.json();
+        allMapData = jsonData.data || [];
+        filterAndRenderMap();
+      } catch (err) {
+        console.error("Lỗi tải dữ liệu bản đồ:", err);
+      }
     }
 
     function filterAndRenderMap() {
+      if (!markersGroup) return;
       markersGroup.clearLayers();
 
       const monthVal = document.getElementById("mapMonth").value;
