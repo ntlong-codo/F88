@@ -20,8 +20,6 @@
       display: flex; align-items: center; justify-content: center;
     }
     .btn, .form-select, .form-control { min-height: 42px; }
-    .clickable-edit { cursor: pointer; }
-    .clickable-edit:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -37,7 +35,6 @@
     </div>
   </div>
 
-  <!-- NỘI DUNG CHÍNH WEBSITE -->
   <div class="container py-3 px-2 d-none" id="mainContent">
     
     <div class="d-flex justify-content-between align-items-center mb-2 bg-white p-2 rounded shadow-sm">
@@ -120,13 +117,10 @@
           <option value="Bạo lực">Bạo lực</option>
         </select>
       </div>
-
-      <!-- BỔ SUNG LỌC THEO THƯỜNG TRÚ -->
       <div class="mb-3">
         <label class="form-label fw-bold small">🏠 Lọc theo Thường Trú:</label>
         <input type="text" id="filterThuongTru" class="form-control" placeholder="Nhập tên xã, huyện, tỉnh..." oninput="filterData(); updateFilterCount();">
       </div>
-
       <div class="mb-3">
         <label class="form-label fw-bold small">Trạng thái Check:</label>
         <select id="filterCheck" class="form-select" onchange="filterData(); updateFilterCount();">
@@ -321,7 +315,6 @@
 
         return `
           <div class="customer-card ${cardStyleClass}">
-            <!-- Dòng 1: Tên, Số HĐ và Tìm nhà ở góc phải -->
             <div class="d-flex justify-content-between align-items-start mb-2 gap-2">
               <div>
                 <h6 class="fw-bold text-primary mb-1">${item.Ten_khach_hang || 'Chưa có tên'}</h6>
@@ -340,7 +333,6 @@
               </div>
             </div>
 
-            <!-- Dòng 2: SĐT và Khả Năng Thanh Toán / Độ Khó -->
             <div class="row g-2 mb-2">
               <div class="col-12 text-secondary small">📞 SĐT: <b>${item.sdt || '---'}</b> | Kỳ: <b>${item.Thang || '---'}</b></div>
               
@@ -370,7 +362,6 @@
               </div>
             </div>
 
-            <!-- HIỂN THỊ ĐỊA CHỈ TRỰC TIẾP (KHÔNG ẨN) -->
             <div class="sub-section mb-2 text-secondary small">
               <b>📍 Địa chỉ:</b><br>
               - Thường trú: <b>${item.WARD_HO_KHAU || '---'}</b><br>
@@ -378,15 +369,11 @@
               - Shop: ${item.SHOPNAME || '---'}
             </div>
 
-            <!-- CHUYỂN GHI CHÚ, LIÊN HỆ, THANH TOÁN SANG DẠNG CHỮ + EDIT INLINE -->
             <div class="my-2 pt-2 border-top small">
-              
-              <!-- GHI CHÚ -->
               <div class="mb-1">
                 <span class="fw-bold text-success">📝 Ghi chú:</span>
                 <span id="text_note_${item.rowIndex}">${item.Ghi_chu || '<i>Chưa có</i>'}</span>
                 <button class="btn btn-sm p-0 ms-1 text-primary" onclick="toggleEdit('${item.rowIndex}', 'note')">✏️</button>
-                
                 <div id="box_note_${item.rowIndex}" class="d-none mt-1">
                   <div class="input-group input-group-sm">
                     <input type="text" id="input_note_${item.rowIndex}" class="form-control" value="${item.Ghi_chu || ''}">
@@ -396,12 +383,10 @@
                 </div>
               </div>
 
-              <!-- NGƯỜI LIÊN HỆ -->
               <div class="mb-1">
                 <span class="fw-bold text-danger">👤 Liên hệ:</span>
                 <span id="text_contact_${item.rowIndex}">${item.Nguoi_lien_he || '<i>Chưa có</i>'}</span>
                 <button class="btn btn-sm p-0 ms-1 text-primary" onclick="toggleEdit('${item.rowIndex}', 'contact')">✏️</button>
-
                 <div id="box_contact_${item.rowIndex}" class="d-none mt-1">
                   <div class="input-group input-group-sm">
                     <input type="text" id="input_contact_${item.rowIndex}" class="form-control" value="${item.Nguoi_lien_he || ''}">
@@ -411,12 +396,10 @@
                 </div>
               </div>
 
-              <!-- ĐÃ THANH TOÁN -->
               <div>
                 <span class="fw-bold text-success">💰 Đã TT:</span>
                 <span id="text_paid_${item.rowIndex}" class="fw-bold text-dark">${formattedPaid}</span>
                 <button class="btn btn-sm p-0 ms-1 text-primary" onclick="toggleEdit('${item.rowIndex}', 'paid')">✏️</button>
-
                 <div id="box_paid_${item.rowIndex}" class="d-none mt-1">
                   <div class="input-group input-group-sm">
                     <input type="number" id="input_paid_${item.rowIndex}" class="form-control" value="${item.So_tien_thanh_toan || ''}" placeholder="Nhập số tiền...">
@@ -425,28 +408,22 @@
                   </div>
                 </div>
               </div>
-
             </div>
 
-            <!-- DÒNG BẤM MỞ CHI TIẾT GPS -->
             <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
               <div>${gpsBadge}</div>
-              <button class="btn btn-sm btn-outline-primary" type="button">
-                🔽 Thao tác Check & GPS
-              </button>
+              <button class="btn btn-sm btn-outline-primary" type="button">🔽 Thao tác Check & GPS</button>
             </div>
 
-            <!-- PHẦN THU GỌN CHỈ CHỨA GPS VÀ CHECK -->
             <div class="collapse mt-2" id="${collapseId}">
               <div class="p-2 bg-light rounded border">
                 <div class="mb-3">
-                  <div class="small fw-bold mb-1">⚡ Xác thực thực địa:</div>
+                  <div class="small fw-bold mb-1">⚡ Xác thực thực địa (Giới hạn 1 lần/ngày):</div>
                   <div class="d-flex gap-2">
                     <button class="btn btn-sm text-white flex-fill" style="background-color: #6f42c1;" onclick="doCheckAo(${item.rowIndex})">🛡️ Check Áo</button>
                     <button class="btn btn-sm btn-success flex-fill" onclick="doCheckGps(${item.rowIndex})">📍 Check GPS</button>
                   </div>
                 </div>
-
                 <div class="sub-section">
                   <div class="small fw-bold text-primary mb-1">🌐 Quản lý Tọa độ GPS (1-5):</div>
                   ${renderGpsInputsMobile(item)}
@@ -476,47 +453,64 @@
       return html;
     }
 
-    // ẨN / HIỆN Ô NHẬP LIỆU CHỈNH SỬA
     function toggleEdit(rowIndex, type) {
       const box = document.getElementById(`box_${type}_${rowIndex}`);
-      if (box) {
-        box.classList.toggle('d-none');
-      }
+      if (box) box.classList.toggle('d-none');
     }
 
-    // LƯU CẢNH BÁO / GHI CHÚ / LIÊN HỆ CHỈNH SỬA TẠI CHỖ
     async function saveInlineEdit(rowIndex, fieldName, inputId, type) {
       const val = document.getElementById(inputId).value.trim();
       toggleEdit(rowIndex, type);
-      
       const item = allRawData.find(d => d.rowIndex == rowIndex);
       if (item) item[fieldName] = val;
-
       document.getElementById(`text_${type}_${rowIndex}`).innerHTML = val || '<i>Chưa có</i>';
       await updateField(rowIndex, fieldName, val);
       showToast("Đã cập nhật!");
     }
 
-    // LƯU SỐ TIỀN THANH TOÁN CHỈNH SỬA TẠI CHỖ
     async function savePaidAmountInline(rowIndex) {
       const val = document.getElementById(`input_paid_${rowIndex}`).value;
       toggleEdit(rowIndex, 'paid');
-
       const item = allRawData.find(d => d.rowIndex == rowIndex);
       if (item) item.So_tien_thanh_toan = val;
-
       const formatted = val ? Number(val).toLocaleString() + ' VNĐ' : 'Chưa';
       document.getElementById(`text_paid_${rowIndex}`).innerText = formatted;
-
       await updateField(rowIndex, 'So_tien_thanh_toan', val);
       showToast(`Đã lưu số tiền thanh toán: ${formatted}`);
     }
 
+    // KIỂM TRA THỜI GIAN CHECK (MỖI NGÀY CHỈ ĐƯỢC CHECK 1 LẦN)
+    function canCheckToday(item) {
+      if (!item.Check_Time) return true;
+      const lastCheckDate = new Date(item.Check_Time).toDateString();
+      const todayDate = new Date().toDateString();
+      return lastCheckDate !== todayDate;
+    }
+
+    async function doCheckAo(rowIndex) {
+      const item = allRawData.find(d => d.rowIndex === rowIndex);
+      if (item && !canCheckToday(item)) {
+        showToast("Hôm nay khách này đã được check rồi!", "danger");
+        return;
+      }
+      const nowStr = new Date().toISOString();
+      await updateField(rowIndex, 'Check_Ao', 'Đã Check Áo');
+      await updateField(rowIndex, 'Check_GPS', ''); 
+      await updateField(rowIndex, 'Check_Time', nowStr);
+      showToast("Đã Check Áo thành công!", "primary");
+      loadCustomerData();
+    }
+
     async function doCheckGps(rowIndex) {
+      const item = allRawData.find(d => d.rowIndex === rowIndex);
+      if (item && !canCheckToday(item)) {
+        showToast("Hôm nay khách này đã được check rồi!", "danger");
+        return;
+      }
+
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(async position => {
           const coordStr = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
-          const item = allRawData.find(d => d.rowIndex === rowIndex);
           if(!item) return;
 
           const gpsFields = ['GPS_Chinh', 'GPS_1', 'GPS_2', 'GPS_3', 'GPS_4', 'GPS_5'];
@@ -529,9 +523,11 @@
             }
           }
 
+          const nowStr = new Date().toISOString();
           await updateField(rowIndex, targetKey, coordStr);
           await updateField(rowIndex, 'Check_GPS', 'Đã Check GPS');
           await updateField(rowIndex, 'Check_Ao', ''); 
+          await updateField(rowIndex, 'Check_Time', nowStr);
           
           showToast(`Check GPS thành công vào [${targetKey}]: ${coordStr}`);
           loadCustomerData();
@@ -582,13 +578,6 @@
       document.getElementById("filterCheck").value = "";
       updateFilterCount();
       filterData();
-    }
-
-    async function doCheckAo(rowIndex) {
-      await updateField(rowIndex, 'Check_Ao', 'Đã Check Áo');
-      await updateField(rowIndex, 'Check_GPS', ''); 
-      showToast("Đã Check Áo thành công!", "primary");
-      loadCustomerData();
     }
 
     async function updateFieldAndNotify(rowIndex, fieldName, value) {

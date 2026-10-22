@@ -46,26 +46,23 @@
     <div id="map" class="shadow-sm"></div>
   </div>
 
-  <!-- OFFCANVAS DRAWER BỘ LỌC ĐẦY ĐỦ NHƯ INDEX -->
+  <!-- OFFCANVAS DRAWER BỘ LỌC ĐẦY ĐỦ -->
   <div class="offcanvas offcanvas-end" tabindex="-1" id="mapFilterDrawer">
     <div class="offcanvas-header bg-danger text-white">
       <h5 class="offcanvas-title fw-bold">⚙️ Bộ Lọc Nâng Cao</h5>
       <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
     </div>
     <div class="offcanvas-body">
-      
       <div class="mb-3">
         <label class="form-label fw-bold small">Kỳ tháng:</label>
         <select id="mapMonth" class="form-select" onchange="filterAndRenderMap()">
           <option value="">-- Tất cả tháng --</option>
         </select>
       </div>
-
       <div class="mb-3">
         <label class="form-label fw-bold small">Tìm kiếm khách hàng:</label>
         <input type="text" id="mapSearch" class="form-control" placeholder="Tên khách, số HĐ, SĐT..." oninput="filterAndRenderMap()">
       </div>
-
       <div class="mb-3">
         <label class="form-label fw-bold small">Khả Năng Thanh Toán:</label>
         <select id="mapTrangThai" class="form-select" onchange="filterAndRenderMap()">
@@ -79,7 +76,6 @@
           <option value="Nhiều khả năng(Hẹn)">Nhiều khả năng(Hẹn)</option>
         </select>
       </div>
-
       <div class="mb-3">
         <label class="form-label fw-bold small">Tìm nhà:</label>
         <select id="mapTimNha" class="form-select" onchange="filterAndRenderMap()">
@@ -92,7 +88,6 @@
           <option value="Gặp khách hàng">Gặp khách hàng</option>
         </select>
       </div>
-
       <div class="mb-3">
         <label class="form-label fw-bold small">Độ khó khách hàng:</label>
         <select id="mapDoKho" class="form-select" onchange="filterAndRenderMap()">
@@ -105,12 +100,10 @@
           <option value="Bạo lực">Bạo lực</option>
         </select>
       </div>
-
       <div class="mb-3">
         <label class="form-label fw-bold small">🏠 Lọc theo Thường Trú:</label>
         <input type="text" id="mapThuongTru" class="form-control" placeholder="Nhập tên xã, huyện, tỉnh..." oninput="filterAndRenderMap()">
       </div>
-
       <div class="mb-3">
         <label class="form-label fw-bold small">Trạng thái Check:</label>
         <select id="mapCheck" class="form-select" onchange="filterAndRenderMap()">
@@ -120,8 +113,7 @@
           <option value="ChuaCheck">Chưa check</option>
         </select>
       </div>
-
-      <button class="btn btn-outline-danger w-100 mt-3" onclick="resetMapFilters()">🔄 Đặt lại bộ lọc</button>
+      <button class="btn btn-outline-secondary w-100 mt-3" onclick="resetMapFilters()">🔄 Đặt lại bộ lọc</button>
     </div>
   </div>
 
@@ -144,28 +136,22 @@
 
     function initMap() {
       if (map !== null) return;
-      
       map = L.map('map').setView([10.030, 105.770], 13);
-      
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '© OpenStreetMap'
       }).addTo(map);
-
       markersGroup = L.layerGroup().addTo(map);
     }
 
     function locateMyPosition() {
       if (!navigator.geolocation) return;
-
       navigator.geolocation.getCurrentPosition(position => {
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
         myCoords = { lat, lng };
 
-        if (myLocationMarker) {
-          map.removeLayer(myLocationMarker);
-        }
+        if (myLocationMarker) { map.removeLayer(myLocationMarker); }
 
         const myIcon = L.divIcon({
           className: 'my-location-marker',
@@ -288,8 +274,9 @@
 
               const marker = L.marker([lat, lng], { icon: customIcon });
 
+              // BỔ SUNG THÊM THƯỜNG TRÚ, TẠM TRÚ, VÀ GHI CHÚ TRÊN POPUP BẢN ĐỒ
               marker.bindPopup(`
-                <div style="font-size: 14px; min-width: 200px;">
+                <div style="font-size: 13px; min-width: 210px; line-height: 1.4;">
                   <b style="color:#0d6efd; font-size: 15px;">${item.Ten_khach_hang || ''}</b><br>
                   <small class="text-muted"><b>Điểm:</b> ${labelName} ${isPaid ? '(Đã TT)' : ''}</small>
                   ${distanceHtml}
@@ -298,9 +285,11 @@
                   <b>SĐT:</b> ${item.sdt || '---'}<br>
                   <b>Khả năng:</b> ${item.Trang_thai_hd || 'Chưa biết'}<br>
                   <b>Tìm nhà:</b> ${item.Trang_thai_tim_nha || 'Chưa tìm'}<br>
-                  <b>Độ khó:</b> ${item.Muc_do_kho || 'Chưa biết'}<br>
-                  <b>Thường trú:</b> ${item.WARD_HO_KHAU || '---'}<br>
                   <b>Đã TT:</b> ${isPaid ? Number(item.So_tien_thanh_toan).toLocaleString() + ' VNĐ' : 'Chưa'}<br>
+                  <hr class="my-1">
+                  <b>🏠 Thường trú:</b> ${item.WARD_HO_KHAU || '---'}<br>
+                  <b>⛺ Tạm trú:</b> ${item.WARD_TAM_TRU || '---'}<br>
+                  <b>📝 Ghi chú:</b> <span class="text-success">${item.Ghi_chu || 'Chưa có'}</span>
                   <hr class="my-1">
                   <a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" class="btn btn-sm btn-danger text-white w-100 fw-bold mt-1 p-2" style="font-size:13px;">🧭 DẪN ĐƯỜNG GOOGLE MAPS</a>
                 </div>
