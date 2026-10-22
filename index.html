@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>Quản Lý Thu Hồi Nợ</title>
+  <title>Quản Lý Thu Hồi Nợ - Bộ Lọc Nâng Cao</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <style>
     .nested-row { background-color: #f8f9fa !important; }
@@ -13,19 +13,82 @@
 </head>
 <body class="bg-light">
   <div class="container-fluid my-4 px-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h2>📋 Quản Lý Khách Hàng & Check Thực Địa</h2>
-      <a href="map.html" class="btn btn-danger">🗺️ Xem Bản Đồ GPS</a>
-    </div>
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>📋 Quản Lý Khách Hàng & Bộ Lọc Thực Địa</h2>
+  <div>
+    <button class="btn btn-warning me-2 fw-bold" onclick="syncDataFromSheets()">🔄 Đồng bộ dữ liệu tháng</button>
+    <a href="map.html" class="btn btn-danger">🗺️ Xem Bản Đồ GPS</a>
+  </div>
+</div>
 
-    <!-- Lọc tháng -->
+    <!-- THANH CÔNG CỤ BỘ LỌC & TÌM KIẾM -->
     <div class="card p-3 mb-3 shadow-sm">
-      <div class="row align-items-center">
-        <label class="col-auto col-form-label fw-bold">Chọn Kỳ Tháng (mmyyyy):</label>
-        <div class="col-auto">
-          <select id="monthSelect" class="form-select" onchange="loadCustomerData()">
-            <option value="">-- Tất cả các tháng --</option>
+      <div class="row g-2 align-items-center">
+        <!-- Chọn kỳ tháng -->
+        <div class="col-md-2">
+          <label class="form-label fw-bold small mb-1">Kỳ tháng:</label>
+          <select id="filterMonth" class="form-select form-select-sm" onchange="filterData()">
+            <option value="">-- Tất cả tháng --</option>
           </select>
+        </div>
+        <!-- Tìm theo tên hoặc SĐT/HĐ -->
+        <div class="col-md-3">
+          <label class="form-label fw-bold small mb-1">Tìm kiếm khách hàng:</label>
+          <input type="text" id="searchKeyword" class="form-control form-select-sm" placeholder="Nhập tên, số HĐ, SĐT..." oninput="filterData()">
+        </div>
+        <!-- Lọc Trạng thái HĐ -->
+        <div class="col-md-2">
+          <label class="form-label fw-bold small mb-1">Trạng thái HĐ:</label>
+          <select id="filterTrangThaiHd" class="form-select form-select-sm" onchange="filterData()">
+            <option value="">Tất cả</option>
+            <option value="Nợ">Nợ</option>
+            <option value="Trả một phần">Trả một phần</option>
+            <option value="Tất toán">Tất toán</option>
+            <option value="Hứa">Hứa</option>
+          </select>
+        </div>
+        <!-- Lọc Tìm nhà -->
+        <div class="col-md-2">
+          <label class="form-label fw-bold small mb-1">Tìm nhà:</label>
+          <select id="filterTimNha" class="form-select form-select-sm" onchange="filterData()">
+            <option value="">Tất cả</option>
+            <option value="Chưa tìm">Chưa tìm</option>
+            <option value="Dễ tìm">Dễ tìm</option>
+            <option value="Khó tìm">Khó tìm</option>
+            <option value="Không tìm thấy">Không tìm thấy</option>
+          </select>
+        </div>
+        <!-- Lọc Độ khó -->
+        <div class="col-md-2">
+          <label class="form-label fw-bold small mb-1">Độ khó:</label>
+          <select id="filterDoKho" class="form-select form-select-sm" onchange="filterData()">
+            <option value="">Tất cả</option>
+            <option value="Dễ">Dễ</option>
+            <option value="Trung bình">Trung bình</option>
+            <option value="Khó">Khó</option>
+            <option value="Rất khó">Rất khó</option>
+          </select>
+        </div>
+        <!-- Lọc Trạng thái Check & GPS -->
+        <div class="col-md-2">
+          <label class="form-label fw-bold small mb-1">Trạng thái Check:</label>
+          <select id="filterCheck" class="form-select form-select-sm" onchange="filterData()">
+            <option value="">Tất cả</option>
+            <option value="DaCheckGps">Đã Check GPS</option>
+            <option value="DaCheckAo">Đã Check Áo</option>
+            <option value="ChuaCheck">Chưa check</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-bold small mb-1">Tọa độ GPS:</label>
+          <select id="filterHasGps" class="form-select form-select-sm" onchange="filterData()">
+            <option value="">Tất cả</option>
+            <option value="HasGps">Có GPS (Ít nhất 1)</option>
+            <option value="NoGps">Chưa có GPS</option>
+          </select>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+          <button class="btn btn-outline-secondary btn-sm w-100 mt-3" onclick="resetFilters()">🔄 Đặt lại bộ lọc</button>
         </div>
       </div>
     </div>
@@ -36,17 +99,18 @@
         <table class="table table-hover align-middle mb-0">
           <thead class="table-dark">
             <tr>
-              <th style="width: 5%;">#</th>
-              <th style="width: 20%;">HĐ & Tên Khách Hàng</th>
+              <th style="width: 4%;">#</th>
+              <th style="width: 18%;">HĐ & Tên Khách Hàng</th>
               <th style="width: 13%;">Trạng thái HĐ</th>
               <th style="width: 13%;">Tìm nhà</th>
               <th style="width: 12%;">Độ khó</th>
               <th style="width: 12%;">Check</th>
-              <th style="width: 25%;">Chi tiết</th>
+              <th style="width: 12%;">GPS</th>
+              <th style="width: 16%;">Chi tiết</th>
             </tr>
           </thead>
           <tbody id="customerTableBody">
-            <tr><td colspan="7" class="text-center">Đang tải dữ liệu...</td></tr>
+            <tr><td colspan="8" class="text-center">Đang tải dữ liệu...</td></tr>
           </tbody>
         </table>
       </div>
@@ -55,13 +119,13 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbxvu0vDCyMQQ2XMtM7MmnXI2MXJZFZWBmggc88RE1T1xEqmMtuixnTNpsfBya-ujanF/exec"; 
-    let currentData = [];
+    const API_URL = "https://script.google.com/macros/s/AKfycbzh3d9qWgoJCwwP6DqDWLIeBDOkOIZqJW8e-nnas23CZpJRFW-w1umUCmE74KOrqLO4/exec"; 
+    let allRawData = [];
 
     async function init() {
       const res = await fetch(`${API_URL}?action=getMonths`);
       const json = await res.json();
-      const select = document.getElementById("monthSelect");
+      const select = document.getElementById("filterMonth");
       json.months.forEach(m => {
         select.innerHTML += `<option value="${m}">Kỳ ${m}</option>`;
       });
@@ -69,20 +133,65 @@
     }
 
     async function loadCustomerData() {
-      const month = document.getElementById("monthSelect").value;
-      const tbody = document.getElementById("customerTableBody");
-      tbody.innerHTML = `<tr><td colspan="7" class="text-center">Đang tải...</td></tr>`;
-      
-      const res = await fetch(`${API_URL}?action=getData&month=${month}`);
+      const res = await fetch(`${API_URL}?action=getData`);
       const json = await res.json();
-      currentData = json.data || [];
+      allRawData = json.data || [];
+      filterData();
+    }
 
-      if(currentData.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center">Không có dữ liệu.</td></tr>`;
+    function filterData() {
+      const monthVal = document.getElementById("filterMonth").value;
+      const keyword = document.getElementById("searchKeyword").value.toLowerCase();
+      const fTrangThai = document.getElementById("filterTrangThaiHd").value;
+      const fTimNha = document.getElementById("filterTimNha").value;
+      const fDoKho = document.getElementById("filterDoKho").value;
+      const fCheck = document.getElementById("filterCheck").value;
+      const fHasGps = document.getElementById("filterHasGps").value;
+
+      let filtered = allRawData.filter(item => {
+        // Lọc tháng
+        if (monthVal && String(item.Thang).trim() !== String(monthVal).trim()) return false;
+        
+        // Lọc từ khóa (tên, số HĐ, SĐT)
+        if (keyword) {
+          const textSearch = `${item.Ten_khach_hang || ''} ${item.so_hd || ''} ${item.sdt || ''}`.toLowerCase();
+          if (!textSearch.includes(keyword)) return false;
+        }
+
+        // Lọc trạng thái HĐ
+        if (fTrangThai && item.Trang_thai_hd !== fTrangThai) return false;
+
+        // Lọc tìm nhà
+        if (fTimNha && item.Trang_thai_tim_nha !== fTimNha) return false;
+
+        // Lọc độ khó
+        if (fDoKho && item.Muc_do_kho !== fDoKho) return false;
+
+        // Lọc check
+        if (fCheck === 'DaCheckGps' && item.Check_GPS !== 'Đã Check GPS') return false;
+        if (fCheck === 'DaCheckAo' && item.Check_Ao !== 'Đã Check Áo') return false;
+        if (fCheck === 'ChuaCheck' && (item.Check_GPS === 'Đã Check GPS' || item.Check_Ao === 'Đã Check Áo')) return false;
+
+        // Lọc có GPS
+        const gpsFields = ['GPS_Chinh', 'GPS_1', 'GPS_2', 'GPS_3', 'GPS_4', 'GPS_5'];
+        const hasAnyGps = gpsFields.some(k => item[k] && String(item[k]).includes(','));
+        if (fHasGps === 'HasGps' && !hasAnyGps) return false;
+        if (fHasGps === 'NoGps' && hasAnyGps) return false;
+
+        return true;
+      });
+
+      renderTable(filtered);
+    }
+
+    function renderTable(data) {
+      const tbody = document.getElementById("customerTableBody");
+      if(data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center">Không tìm thấy khách hàng phù hợp.</td></tr>`;
         return;
       }
 
-      tbody.innerHTML = currentData.map((item, idx) => {
+      tbody.innerHTML = data.map((item, idx) => {
         const rowId = `collapse_${idx}`;
         let trStyleClass = "";
         let checkBadge = '<span class="badge bg-secondary">Chưa check</span>';
@@ -94,14 +203,17 @@
           checkBadge = '<span class="badge" style="background-color: #6f42c1; color: white;">🛡️ Đã Check Áo</span>';
         }
 
+        const gpsFields = ['GPS_Chinh', 'GPS_1', 'GPS_2', 'GPS_3', 'GPS_4', 'GPS_5'];
+        const countGps = gpsFields.filter(k => item[k] && String(item[k]).includes(',')).length;
+        const gpsBadge = countGps > 0 ? `<span class="badge bg-primary">${countGps} tọa độ</span>` : `<span class="badge bg-light text-dark">0 GPS</span>`;
+
         return `
           <tr class="${trStyleClass}">
             <td>${idx + 1}</td>
             <td>
               <strong class="text-primary">${item.Ten_khach_hang || ''}</strong><br>
-              <small class="text-muted">HĐ: ${item.so_hd || ''}</small>
+              <small class="text-muted">HĐ: ${item.so_hd || ''} | SĐT: ${item.sdt || '---'}</small>
             </td>
-            <!-- 1. Trạng thái hợp đồng -->
             <td>
               <select class="form-select form-select-sm" onchange="updateField(${item.rowIndex}, 'Trang_thai_hd', this.value)">
                 <option value="Nợ" ${item.Trang_thai_hd === 'Nợ' ? 'selected' : ''}>🔴 Nợ</option>
@@ -110,7 +222,6 @@
                 <option value="Hứa" ${item.Trang_thai_hd === 'Hứa' ? 'selected' : ''}>🔵 Hứa</option>
               </select>
             </td>
-            <!-- 2. Trạng thái tìm nhà -->
             <td>
               <select class="form-select form-select-sm" onchange="updateField(${item.rowIndex}, 'Trang_thai_tim_nha', this.value)">
                 <option value="Chưa tìm" ${item.Trang_thai_tim_nha === 'Chưa tìm' ? 'selected' : ''}>⚪ Chưa tìm</option>
@@ -119,7 +230,6 @@
                 <option value="Không tìm thấy" ${item.Trang_thai_tim_nha === 'Không tìm thấy' ? 'selected' : ''}>🔴 Không tìm thấy</option>
               </select>
             </td>
-            <!-- 3. Phân loại khách hàng -->
             <td>
               <select class="form-select form-select-sm" onchange="updateField(${item.rowIndex}, 'Muc_do_kho', this.value)">
                 <option value="Dễ" ${item.Muc_do_kho === 'Dễ' ? 'selected' : ''}>🟢 Dễ</option>
@@ -129,26 +239,22 @@
               </select>
             </td>
             <td>${checkBadge}</td>
+            <td>${gpsBadge}</td>
             <td>
               <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#${rowId}">
-                🔽 Mở rộng
+                🔽 Chi tiết
               </button>
             </td>
           </tr>
 
-          <!-- DÒNG XỔ XUỐNG -->
           <tr class="nested-row">
-            <td colspan="7" class="p-0">
+            <td colspan="8" class="p-0">
               <div class="collapse p-3" id="${rowId}">
                 <div class="row g-3">
                   <div class="col-md-12 sub-section bg-white p-2 rounded shadow-sm">
                     <h6 class="fw-bold text-dark mb-2">⚡ Thao tác xác thực nhanh:</h6>
-                    <button class="btn btn-sm text-white me-2" style="background-color: #6f42c1;" onclick="doCheckAo(${item.rowIndex})">
-                      🛡️ Check Áo (Đổi màu danh sách)
-                    </button>
-                    <button class="btn btn-sm btn-success" onclick="doCheckGps(${item.rowIndex})">
-                      📍 Check GPS Nhà Khách (Đổi màu danh sách & Bản đồ)
-                    </button>
+                    <button class="btn btn-sm text-white me-2" style="background-color: #6f42c1;" onclick="doCheckAo(${item.rowIndex})">🛡️ Check Áo</button>
+                    <button class="btn btn-sm btn-success" onclick="doCheckGps(${item.rowIndex})">📍 Check GPS Nhà Khách</button>
                   </div>
 
                   <div class="col-md-12 sub-section">
@@ -162,15 +268,13 @@
 
                   <div class="col-md-12 sub-section">
                     <h6 class="fw-bold text-primary">🌐 Hệ thống GPS (1 tới 5)</h6>
-                    <div class="row g-2">
-                      ${renderGpsInputs(item)}
-                    </div>
+                    <div class="row g-2">${renderGpsInputs(item)}</div>
                   </div>
 
                   <div class="col-md-6 sub-section">
                     <h6 class="fw-bold text-success">📝 Ghi chú</h6>
                     <div class="input-group input-group-sm">
-                      <input type="text" id="note_${item.rowIndex}" class="form-control" value="${item.Ghi_chu || ''}" placeholder="Nhập ghi chú...">
+                      <input type="text" id="note_${item.rowIndex}" class="form-control" value="${item.Ghi_chu || ''}">
                       <button class="btn btn-success" type="button" onclick="saveSubData(${item.rowIndex}, 'Ghi_chu', 'note_${item.rowIndex}')">Lưu</button>
                     </div>
                   </div>
@@ -178,11 +282,10 @@
                   <div class="col-md-6 sub-section">
                     <h6 class="fw-bold text-danger">👤 Người liên hệ</h6>
                     <div class="input-group input-group-sm">
-                      <input type="text" id="contact_${item.rowIndex}" class="form-control" value="${item.Nguoi_lien_he || ''}" placeholder="Tên & SĐT...">
+                      <input type="text" id="contact_${item.rowIndex}" class="form-control" value="${item.Nguoi_lien_he || ''}">
                       <button class="btn btn-danger" type="button" onclick="saveSubData(${item.rowIndex}, 'Nguoi_lien_he', 'contact_${item.rowIndex}')">Lưu</button>
                     </div>
                   </div>
-
                 </div>
               </div>
             </td>
@@ -193,28 +296,32 @@
 
     function renderGpsInputs(item) {
       let html = '';
-      const gpsFields = [
-        { key: 'GPS_Chinh', label: 'GPS Chính' },
-        { key: 'GPS_1', label: 'GPS 1' },
-        { key: 'GPS_2', label: 'GPS 2' },
-        { key: 'GPS_3', label: 'GPS 3' },
-        { key: 'GPS_4', label: 'GPS 4' },
-        { key: 'GPS_5', label: 'GPS 5' }
-      ];
-
-      gpsFields.forEach(f => {
+      const gpsFields = ['GPS_Chinh', 'GPS_1', 'GPS_2', 'GPS_3', 'GPS_4', 'GPS_5'];
+      const labels = ['GPS Chính', 'GPS 1', 'GPS 2', 'GPS 3', 'GPS 4', 'GPS 5'];
+      gpsFields.forEach((key, idx) => {
         html += `
           <div class="col-md-4">
             <div class="input-group input-group-sm mb-1">
-              <span class="input-group-text" style="font-size:11px; width:75px;">${f.label}</span>
-              <input type="text" id="input_${item.rowIndex}_${f.key}" class="form-control" value="${item[f.key] || ''}" placeholder="Lat, Lng">
-              <button class="btn btn-outline-secondary" type="button" onclick="getCurrentLocation(${item.rowIndex}, '${f.key}')" title="Lấy GPS">📍</button>
-              <button class="btn btn-primary" type="button" onclick="saveGpsField(${item.rowIndex}, '${f.key}')">Lưu</button>
+              <span class="input-group-text" style="font-size:11px; width:75px;">${labels[idx]}</span>
+              <input type="text" id="input_${item.rowIndex}_${key}" class="form-control" value="${item[key] || ''}" placeholder="Lat, Lng">
+              <button class="btn btn-outline-secondary" type="button" onclick="getCurrentLocation(${item.rowIndex}, '${key}')">📍</button>
+              <button class="btn btn-primary" type="button" onclick="saveGpsField(${item.rowIndex}, '${key}')">Lưu</button>
             </div>
           </div>
         `;
       });
       return html;
+    }
+
+    function resetFilters() {
+      document.getElementById("filterMonth").value = "";
+      document.getElementById("searchKeyword").value = "";
+      document.getElementById("filterTrangThaiHd").value = "";
+      document.getElementById("filterTimNha").value = "";
+      document.getElementById("filterDoKho").value = "";
+      document.getElementById("filterCheck").value = "";
+      document.getElementById("filterHasGps").value = "";
+      filterData();
     }
 
     async function doCheckAo(rowIndex) {
@@ -230,27 +337,17 @@
           const lat = position.coords.latitude;
           const lng = position.coords.longitude;
           const coordStr = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-          
           await updateField(rowIndex, 'GPS_Chinh', coordStr);
           await updateField(rowIndex, 'Check_GPS', 'Đã Check GPS');
           await updateField(rowIndex, 'Check_Ao', ''); 
-          
-          alert(`Check GPS thành công tại tọa độ: ${coordStr}`);
+          alert(`Check GPS thành công: ${coordStr}`);
           loadCustomerData();
-        }, () => {
-          alert("Không thể lấy vị trí GPS. Hãy bật định vị!");
-        });
-      } else {
-        alert("Trình duyệt không hỗ trợ Geolocation.");
+        }, () => alert("Không thể lấy vị trí GPS!"));
       }
     }
 
     async function updateField(rowIndex, fieldName, value) {
-      const payload = {
-        action: "updateCustomer",
-        rowIndex: rowIndex,
-        data: { [fieldName]: value }
-      };
+      const payload = { action: "updateCustomer", rowIndex: rowIndex, data: { [fieldName]: value } };
       await fetch(API_URL, { method: "POST", body: JSON.stringify(payload) });
     }
 
@@ -269,16 +366,35 @@
     function getCurrentLocation(rowIndex, key) {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(position => {
-          const lat = position.coords.latitude;
-          const lng = position.coords.longitude;
-          const coordStr = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+          const coordStr = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
           document.getElementById(`input_${rowIndex}_${key}`).value = coordStr;
           updateField(rowIndex, key, coordStr);
           alert(`Đã lấy vị trí: ${coordStr}`);
         });
       }
     }
+async function syncDataFromSheets() {
+  if (!confirm("Bạn có muốn hệ thống quét các tab tháng và đồng bộ khách hàng sang tab Data không?")) return;
+  
+  const btn = event.target;
+  btn.innerText = "Đang đồng bộ...";
+  btn.disabled = true;
 
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({ action: "syncDataFromSheets" })
+    });
+    const json = await res.json();
+    alert(json.message || "Đồng bộ hoàn tất!");
+    loadCustomerData(); // Tải lại dữ liệu lên bảng
+  } catch (err) {
+    alert("Lỗi đồng bộ: " + err);
+  } finally {
+    btn.innerText = "🔄 Đồng bộ dữ liệu tháng";
+    btn.disabled = false;
+  }
+}
     init();
   </script>
 </body>
