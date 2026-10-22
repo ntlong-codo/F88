@@ -38,13 +38,20 @@
   <!-- NỘI DUNG CHÍNH WEBSITE -->
   <div class="container py-3 px-2 d-none" id="mainContent">
     
-    <!-- THANH HEADER THAO TÁC NHANH -->
-    <div class="d-flex justify-content-between align-items-center mb-3 bg-white p-2 rounded shadow-sm">
+    <div class="d-flex justify-content-between align-items-center mb-2 bg-white p-2 rounded shadow-sm">
       <h5 class="mb-0 fw-bold text-primary">📋 Thu Hồi Nợ</h5>
       <div>
         <button class="btn btn-warning btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#syncModal">🔄 Đồng bộ</button>
         <a href="map.html" class="btn btn-danger btn-sm fw-bold">🗺️ Bản đồ</a>
         <button class="btn btn-outline-secondary btn-sm" onclick="logout()">🔒</button>
+      </div>
+    </div>
+
+    <!-- KHUNG HIỂN THỊ BỘ ĐẾM THỰC ĐỊA -->
+    <div class="card p-2 mb-2 bg-white shadow-sm text-center">
+      <div class="row small fw-bold">
+        <div class="col-6 border-end">🛡️ Đã Check Tháng Này: <span id="countMonth" class="text-primary">0</span></div>
+        <div class="col-6">📊 Tổng Đã Check: <span id="countTotal" class="text-success">0</span></div>
       </div>
     </div>
 
@@ -56,13 +63,12 @@
       </button>
     </div>
 
-    <!-- KHU VỰC HIỂN THỊ DANH SÁCH DẠNG THẺ -->
     <div id="customerCardContainer">
       <div class="text-center py-5 text-muted">Đang tải dữ liệu khách hàng...</div>
     </div>
   </div>
 
-  <!-- OFFCANVAS DRAWER (BỘ LỌC THU GỌN) -->
+  <!-- OFFCANVAS DRAWER BỘ LỌC -->
   <div class="offcanvas offcanvas-end" tabindex="-1" id="filterDrawer">
     <div class="offcanvas-header bg-dark text-white">
       <h5 class="offcanvas-title">⚙️ Bộ Lọc Nâng Cao</h5>
@@ -98,13 +104,15 @@
         </select>
       </div>
       <div class="mb-3">
-        <label class="form-label fw-bold small">Độ khó:</label>
+        <label class="form-label fw-bold small">Độ khó khách hàng:</label>
         <select id="filterDoKho" class="form-select" onchange="filterData(); updateFilterCount();">
           <option value="">Tất cả</option>
-          <option value="Dễ">Dễ</option>
-          <option value="Trung bình">Trung bình</option>
-          <option value="Khó">Khó</option>
-          <option value="Rất khó">Rất khó</option>
+          <option value="Chưa biết">Chưa biết</option>
+          <option value="Dễ làm việc">Dễ làm việc</option>
+          <option value="Trung lập">Trung lập</option>
+          <option value="Khó Tính">Khó Tính</option>
+          <option value="Không hợp tác">Không hợp tác</option>
+          <option value="Bạo lực">Bạo lực</option>
         </select>
       </div>
       <div class="mb-3">
@@ -128,7 +136,7 @@
     </div>
   </div>
 
-  <!-- MODAL ĐỒNG BỘ DỮ LIỆU -->
+  <!-- MODAL ĐỒNG BỘ -->
   <div class="modal fade" id="syncModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
@@ -164,30 +172,20 @@
 
     let allRawData = [];
 
-    window.onload = function() {
-      checkSession();
-    };
+    window.onload = function() { checkSession(); };
 
     function checkSession() {
       try {
         const rawData = localStorage.getItem(AUTH_KEY);
-        if (!rawData) {
-          showLoginScreen();
-          return;
-        }
+        if (!rawData) { showLoginScreen(); return; }
         const authData = JSON.parse(rawData);
         const now = new Date().getTime();
-
         if (authData.pass === AUTH_PASS && authData.expiry && now < authData.expiry) {
           document.getElementById("authOverlay").style.display = "none";
           document.getElementById("mainContent").classList.remove("d-none");
           init();
-        } else {
-          showLoginScreen();
-        }
-      } catch (e) {
-        showLoginScreen();
-      }
+        } else { showLoginScreen(); }
+      } catch (e) { showLoginScreen(); }
     }
 
     function showLoginScreen() {
@@ -198,24 +196,17 @@
     function checkAuth() {
       const inputEl = document.getElementById("passInput");
       const errorDiv = document.getElementById("authError");
-      const password = inputEl.value.trim();
-
-      if (password === AUTH_PASS) {
-        const expiry = new Date().getTime() + ONE_DAY_MS;
-        localStorage.setItem(AUTH_KEY, JSON.stringify({ pass: AUTH_PASS, expiry: expiry }));
+      if (inputEl.value.trim() === AUTH_PASS) {
+        localStorage.setItem(AUTH_KEY, JSON.stringify({ pass: AUTH_PASS, expiry: new Date().getTime() + ONE_DAY_MS }));
         errorDiv.classList.add("d-none");
         checkSession();
       } else {
         errorDiv.classList.remove("d-none");
-        inputEl.value = "";
-        inputEl.focus();
+        inputEl.value = ""; inputEl.focus();
       }
     }
 
-    function logout() {
-      localStorage.removeItem(AUTH_KEY);
-      location.reload();
-    }
+    function logout() { localStorage.removeItem(AUTH_KEY); location.reload(); }
 
     async function init() {
       try {
@@ -230,9 +221,7 @@
           });
         }
         loadCustomerData();
-      } catch(err) {
-        console.error("Lỗi khởi tạo:", err);
-      }
+      } catch(err) { console.error("Lỗi khởi tạo:", err); }
     }
 
     async function loadCustomerData() {
@@ -240,6 +229,30 @@
       const json = await res.json();
       allRawData = json.data || [];
       filterData();
+      updateCounters(allRawData);
+    }
+
+    // TÍNH TOÁN BỘ ĐẾM THỰC ĐỊA
+    function updateCounters(data) {
+      let totalChecked = 0;
+      let monthChecked = 0;
+      
+      // Lấy tháng hiện tại định dạng mmyyyy (ví dụ: tháng 10 năm 2026 -> 102026)
+      const now = new Date();
+      const currentMonthStr = String(now.getMonth() + 1).padStart(2, '0') + now.getFullYear();
+
+      data.forEach(item => {
+        const isChecked = (item.Check_GPS === 'Đã Check GPS' || item.Check_Ao === 'Đã Check Áo');
+        if (isChecked) {
+          totalChecked++;
+          if (String(item.Thang).trim() === currentMonthStr) {
+            monthChecked++;
+          }
+        }
+      });
+
+      document.getElementById("countTotal").innerText = totalChecked;
+      document.getElementById("countMonth").innerText = monthChecked;
     }
 
     function updateFilterCount() {
@@ -364,6 +377,7 @@
                   </div>
                 </div>
 
+                <!-- Địa chỉ -->
                 <div class="sub-section mb-3 text-secondary small">
                   <b>📍 Địa chỉ:</b><br>
                   - Thường trú: ${item.WARD_HO_KHAU || '---'}<br>
@@ -371,22 +385,8 @@
                   - Shop: ${item.SHOPNAME || '---'}
                 </div>
 
+                <!-- Kéo Ghi chú và Liên hệ lên trước GPS -->
                 <div class="mb-3">
-                  <label class="small fw-bold">Độ khó khách hàng:</label>
-                  <select class="form-select form-select-sm" onchange="updateFieldAndNotify(${item.rowIndex}, 'Muc_do_kho', this.value)">
-                    <option value="Dễ" ${item.Muc_do_kho === 'Dễ' ? 'selected' : ''}>🟢 Dễ</option>
-                    <option value="Trung bình" ${item.Muc_do_kho === 'Trung bình' ? 'selected' : ''}>🟡 Trung bình</option>
-                    <option value="Khó" ${item.Muc_do_kho === 'Khó' ? 'selected' : ''}>🟠 Khó</option>
-                    <option value="Rất khó" ${item.Muc_do_kho === 'Rất khó' ? 'selected' : ''}>🔴 Rất khó</option>
-                  </select>
-                </div>
-
-                <div class="sub-section mb-3">
-                  <div class="small fw-bold text-primary mb-1">🌐 Quản lý Tọa độ GPS:</div>
-                  ${renderGpsInputsMobile(item)}
-                </div>
-
-                <div class="mb-2">
                   <label class="small fw-bold text-success">📝 Ghi chú:</label>
                   <div class="input-group input-group-sm mb-2">
                     <input type="text" id="note_${item.rowIndex}" class="form-control" value="${item.Ghi_chu || ''}">
@@ -398,6 +398,25 @@
                     <input type="text" id="contact_${item.rowIndex}" class="form-control" value="${item.Nguoi_lien_he || ''}">
                     <button class="btn btn-danger" type="button" onclick="saveSubData(${item.rowIndex}, 'Nguoi_lien_he', 'contact_${item.rowIndex}', 'Đã lưu liên hệ!')">Lưu</button>
                   </div>
+                </div>
+
+                <!-- Độ khó khách hàng -->
+                <div class="mb-3">
+                  <label class="small fw-bold">Độ khó khách hàng:</label>
+                  <select class="form-select form-select-sm" onchange="updateFieldAndNotify(${item.rowIndex}, 'Muc_do_kho', this.value)">
+                    <option value="Chưa biết" ${item.Muc_do_kho === 'Chưa biết' ? 'selected' : ''}>⚪ Chưa biết</option>
+                    <option value="Dễ làm việc" ${item.Muc_do_kho === 'Dễ làm việc' ? 'selected' : ''}>🟢 Dễ làm việc</option>
+                    <option value="Trung lập" ${item.Muc_do_kho === 'Trung lập' ? 'selected' : ''}>🟡 Trung lập</option>
+                    <option value="Khó Tính" ${item.Muc_do_kho === 'Khó Tính' ? 'selected' : ''}>🟠 Khó Tính</option>
+                    <option value="Không hợp tác" ${item.Muc_do_kho === 'Không hợp tác' ? 'selected' : ''}>🔴 Không hợp tác</option>
+                    <option value="Bạo lực" ${item.Muc_do_kho === 'Bạo lực' ? 'selected' : ''}>⛔ Bạo lực</option>
+                  </select>
+                </div>
+
+                <!-- Quản lý 5 GPS nằm dưới -->
+                <div class="sub-section mb-3">
+                  <div class="small fw-bold text-primary mb-1">🌐 Quản lý Tọa độ GPS:</div>
+                  ${renderGpsInputsMobile(item)}
                 </div>
 
               </div>
@@ -423,6 +442,37 @@
         `;
       });
       return html;
+    }
+
+    // CHECK GPS TỰ ĐỘNG ĐIỀN VÀO Ô CÒN THIẾU TỪ CHÍNH ĐẾN 5
+    async function doCheckGps(rowIndex) {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(async position => {
+          const coordStr = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
+          
+          // Tìm xem khách hàng này đang thiếu ô GPS nào từ GPS_Chinh đến GPS_5
+          const item = allRawData.find(d => d.rowIndex === rowIndex);
+          if(!item) return;
+
+          const gpsKeys = ['GPS_Chinh', 'GPS_1', 'GPS_2', 'GPS_3', 'GPS_4', 'GPS_5'];
+          let targetKey = 'GPS_Chinh';
+          
+          for(let key of gpsKeys) {
+            if(!item[key] || String(item[key]).trim() === '') {
+              targetKey = key;
+              break;
+            }
+          }
+
+          // Lưu tọa độ vào ô còn trống đầu tiên và đánh dấu Check GPS
+          await updateField(rowIndex, targetKey, coordStr);
+          await updateField(rowIndex, 'Check_GPS', 'Đã Check GPS');
+          await updateField(rowIndex, 'Check_Ao', ''); 
+          
+          showToast(`Check GPS thành công vào [${targetKey}]: ${coordStr}`);
+          loadCustomerData();
+        }, () => showToast("Không thể lấy vị trí GPS!", "danger"));
+      }
     }
 
     async function executeSync() {
@@ -475,19 +525,6 @@
       await updateField(rowIndex, 'Check_GPS', ''); 
       showToast("Đã Check Áo thành công!", "primary");
       loadCustomerData();
-    }
-
-    async function doCheckGps(rowIndex) {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(async position => {
-          const coordStr = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
-          await updateField(rowIndex, 'GPS_Chinh', coordStr);
-          await updateField(rowIndex, 'Check_GPS', 'Đã Check GPS');
-          await updateField(rowIndex, 'Check_Ao', ''); 
-          showToast(`Check GPS thành công: ${coordStr}`);
-          loadCustomerData();
-        }, () => showToast("Không thể lấy vị trí GPS!", "danger"));
-      }
     }
 
     async function updateFieldAndNotify(rowIndex, fieldName, value) {
