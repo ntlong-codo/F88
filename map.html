@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     body { background-color: #f4f6f9; font-size: 15px; margin: 0; padding: 10px; }
-    #map { height: 78vh; width: 100%; border-radius: 12px; border: 1px solid #ccc; }
+    #map { height: 78vh; width: 100%; border-radius: 12px; border: 1px solid #ccc; background-color: #e5e3df; }
     .btn, .form-select, .form-control { min-height: 38px; }
 
     .gps-badge-icon { background: transparent; border: none; }
@@ -18,22 +18,27 @@
       display: flex; align-items: center; justify-content: center;
       box-shadow: 0 2px 5px rgba(0,0,0,0.3); border: 2px solid white;
     }
+    .my-location-marker {
+      background-color: #dc3545;
+      border: 3px solid white;
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    }
   </style>
 </head>
 <body>
 
   <div class="container-fluid p-2">
     <!-- THANH ĐIỀU HƯỚNG & CÔNG CỤ -->
-    <div class="d-flex justify-content-between align-items-center mb-2 bg-white p-2 rounded shadow-sm">
+    <div class="d-flex justify-content-between align-items-center mb-2 bg-white p-2 rounded shadow-sm flex-wrap gap-2">
       <div class="d-flex align-items-center">
         <a href="index.html" class="btn btn-outline-dark btn-sm me-2">⬅️ Danh sách</a>
-        <h5 class="mb-0 fw-bold text-danger">🗺️ Bản Đồ GPS Thực Địa</h5>
+        <h5 class="mb-0 fw-bold text-danger">🗺️ Bản Đồ GPS</h5>
       </div>
-      <div class="d-flex gap-2">
+      <div class="d-flex gap-1 flex-wrap">
+        <button class="btn btn-danger btn-sm fw-bold" onclick="locateMyPosition()">📍 Vị Trí Của Tôi</button>
         <button id="loadMapBtn" class="btn btn-success btn-sm fw-bold" onclick="loadMapDataAndRender()">🔄 Tải Dữ Liệu</button>
-        <button class="btn btn-primary btn-sm fw-bold" type="button" data-bs-toggle="offcanvas" data-bs-target="#mapFilterDrawer">
-          ⚙️ Lọc
-        </button>
+        <button class="btn btn-primary btn-sm fw-bold" type="button" data-bs-toggle="offcanvas" data-bs-target="#mapFilterDrawer">⚙️ Lọc</button>
       </div>
     </div>
 
@@ -48,19 +53,16 @@
       <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
     </div>
     <div class="offcanvas-body">
-      
       <div class="mb-3">
         <label class="form-label fw-bold small">Kỳ tháng:</label>
         <select id="mapMonth" class="form-select" onchange="filterAndRenderMap()">
           <option value="">-- Tất cả tháng --</option>
         </select>
       </div>
-
       <div class="mb-3">
         <label class="form-label fw-bold small">Tìm kiếm khách hàng:</label>
         <input type="text" id="mapSearch" class="form-control" placeholder="Tên khách, số HĐ, SĐT..." oninput="filterAndRenderMap()">
       </div>
-
       <div class="mb-3">
         <label class="form-label fw-bold small">Khả Năng Thanh Toán:</label>
         <select id="mapTrangThai" class="form-select" onchange="filterAndRenderMap()">
@@ -74,7 +76,6 @@
           <option value="Nhiều khả năng(Hẹn)">Nhiều khả năng(Hẹn)</option>
         </select>
       </div>
-
       <div class="mb-3">
         <label class="form-label fw-bold small">Trạng thái Tìm nhà:</label>
         <select id="mapTimNha" class="form-select" onchange="filterAndRenderMap()">
@@ -87,20 +88,6 @@
           <option value="Gặp khách hàng">Gặp khách hàng</option>
         </select>
       </div>
-
-      <div class="mb-3">
-        <label class="form-label fw-bold small">Độ khó khách hàng:</label>
-        <select id="mapDoKho" class="form-select" onchange="filterAndRenderMap()">
-          <option value="">Tất cả</option>
-          <option value="Chưa biết">Chưa biết</option>
-          <option value="Dễ làm việc">Dễ làm việc</option>
-          <option value="Trung lập">Trung lập</option>
-          <option value="Khó Tính">Khó Tính</option>
-          <option value="Không hợp tác">Không hợp tác</option>
-          <option value="Bạo lực">Bạo lực</option>
-        </select>
-      </div>
-
       <button class="btn btn-outline-secondary w-100 mt-3" onclick="resetMapFilters()">🔄 Đặt lại lọc</button>
     </div>
   </div>
@@ -108,10 +95,12 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbz-FGdBMydSvtKWNhvhK2AfjHEh8sG7umT6XCl4RE8JHvQ8b3pZBh4Q-AV82p9hk3kC/exec"; 
+    const API_URL = "https://script.google.com/macros/s/AKfycbzFAqD9A4puhEqUd4tK2AiAIomat8nJd2r2YTPFap682q_SqF5ZqZiM6F0sVrb0PGv9/exec"; 
 
     let map = null;
     let markersGroup = null;
+    let myLocationMarker = null;
+    let myCoords = null; // Lưu tọa độ hiện tại của điện thoại
     let allMapData = [];
 
     window.onload = function() {
@@ -121,12 +110,61 @@
 
     function initMap() {
       if (map !== null) return;
-      map = L.map('map').setView([10.030, 105.770], 10);
+      
+      map = L.map('map').setView([10.030, 105.770], 12);
+      
+      // Sử dụng OpenStreetMap chuẩn với dự phòng hiển thị nền
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
-        attribution: '© OpenStreetMap contributors'
+        attribution: '© OpenStreetMap'
       }).addTo(map);
+
       markersGroup = L.layerGroup().addTo(map);
+    }
+
+    // ĐỊNH VỊ VỊ TRÍ ĐANG ĐỨNG CỦA NGƯỜI DÙNG
+    function locateMyPosition() {
+      if (!navigator.geolocation) {
+        alert("Trình duyệt không hỗ trợ định vị GPS!");
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(position => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        myCoords = { lat, lng };
+
+        if (myLocationMarker) {
+          map.removeLayer(myLocationMarker);
+        }
+
+        const myIcon = L.divIcon({
+          className: 'my-location-marker',
+          iconSize: [16, 16],
+          iconAnchor: [8, 8]
+        });
+
+        myLocationMarker = L.marker([lat, lng], { icon: myIcon }).addTo(map)
+          .bindPopup("<b>📍 Bạn đang đứng ở đây</b>").openPopup();
+
+        map.setView([lat, lng], 15);
+        filterAndRenderMap(); // Vẽ lại để cập nhật khoảng cách km
+      }, () => {
+        alert("Không thể lấy được vị trí hiện tại của bạn. Vui lòng bật GPS!");
+      });
+    }
+
+    // HÀM TÍNH KHOẢNG CÁCH (KM) GIỮA 2 ĐIỂM TỌA ĐỘ
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371; // Bán kính trái đất tính bằng km
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return (R * c).toFixed(2); // Trả về số km (làm tròn 2 chữ số)
     }
 
     async function loadMapDataAndRender() {
@@ -152,7 +190,7 @@
         allMapData = jsonData.data || [];
         
         filterAndRenderMap();
-        btn.innerText = "✅ Đã tải xong";
+        btn.innerText = "✅ Xong";
         setTimeout(() => { btn.innerText = "🔄 Tải Dữ Liệu"; btn.disabled = false; }, 2000);
       } catch (err) {
         console.error("Lỗi tải dữ liệu bản đồ:", err);
@@ -170,7 +208,6 @@
       const keyword = document.getElementById("mapSearch").value.toLowerCase();
       const fTrangThai = document.getElementById("mapTrangThai").value;
       const fTimNha = document.getElementById("mapTimNha").value;
-      const fDoKho = document.getElementById("mapDoKho").value;
 
       const gpsKeys = ['GPS_Chinh', 'GPS_1', 'GPS_2', 'GPS_3', 'GPS_4', 'GPS_5'];
 
@@ -182,9 +219,12 @@
         }
         if (fTrangThai && item.Trang_thai_hd !== fTrangThai) return;
         if (fTimNha && item.Trang_thai_tim_nha !== fTimNha) return;
-        if (fDoKho && item.Muc_do_kho !== fDoKho) return;
 
         const isCheckedGps = item.Check_GPS === 'Đã Check GPS';
+        const isPaid = item.So_tien_thanh_toan && Number(item.So_tien_thanh_toan) > 0;
+        
+        // Nếu đã thanh toán -> Làm mờ điểm đi (opacity: 0.35), ngược lại sáng rõ (0.9)
+        const markerOpacity = isPaid ? 0.35 : 0.9;
         const markerBgColor = isCheckedGps ? '#198754' : '#0d6efd';
 
         gpsKeys.forEach((key, idx) => {
@@ -197,9 +237,16 @@
               const labelNum = key === 'GPS_Chinh' ? 'C' : String(idx);
               const labelName = key === 'GPS_Chinh' ? 'GPS Chính' : `GPS ${idx}`;
 
+              // Tính khoảng cách nếu đã định vị vị trí hiện tại
+              let distanceHtml = '';
+              if (myCoords) {
+                const dist = calculateDistance(myCoords.lat, myCoords.lng, lat, lng);
+                distanceHtml = `<br><b>📍 Khoảng cách:</b> <span class="text-danger fw-bold">${dist} km</span> từ bạn`;
+              }
+
               const customIcon = L.divIcon({
                 className: 'gps-badge-icon',
-                html: `<div class="gps-marker-num" style="background-color: ${markerBgColor};">${labelNum}</div>`,
+                html: `<div class="gps-marker-num" style="background-color: ${markerBgColor}; opacity: ${markerOpacity};">${labelNum}</div>`,
                 iconSize: [26, 26],
                 iconAnchor: [13, 13]
               });
@@ -209,13 +256,14 @@
               marker.bindPopup(`
                 <div style="font-size: 14px; min-width: 200px;">
                   <b style="color:#0d6efd; font-size: 15px;">${item.Ten_khach_hang || ''}</b><br>
-                  <small class="text-muted"><b>Điểm:</b> ${labelName} (${isCheckedGps ? '🟢 Đã Check' : '🔵 Chưa check'})</small><br>
+                  <small class="text-muted"><b>Điểm:</b> ${labelName} ${isPaid ? '(Đã TT)' : ''}</small>
+                  ${distanceHtml}
                   <hr class="my-1">
                   <b>Số HĐ:</b> <code>${item.so_hd || '---'}</code><br>
                   <b>SĐT:</b> ${item.sdt || '---'}<br>
-                  <b>Thanh Toán:</b> ${item.Trang_thai_hd || 'Chưa biết'}<br>
+                  <b>Khả năng:</b> ${item.Trang_thai_hd || 'Chưa biết'}<br>
                   <b>Tìm nhà:</b> ${item.Trang_thai_tim_nha || 'Chưa tìm'}<br>
-                  <b>Đã TT:</b> ${item.So_tien_thanh_toan ? Number(item.So_tien_thanh_toan).toLocaleString() + ' VNĐ' : 'Chưa'}<br>
+                  <b>Đã TT:</b> ${isPaid ? Number(item.So_tien_thanh_toan).toLocaleString() + ' VNĐ' : 'Chưa'}<br>
                   <hr class="my-1">
                   <a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" class="btn btn-sm btn-danger text-white w-100 fw-bold mt-1 p-2" style="font-size:13px;">🧭 DẪN ĐƯỜNG GOOGLE MAPS</a>
                 </div>
@@ -232,7 +280,6 @@
       document.getElementById("mapSearch").value = "";
       document.getElementById("mapTrangThai").value = "";
       document.getElementById("mapTimNha").value = "";
-      document.getElementById("mapDoKho").value = "";
       filterAndRenderMap();
     }
   </script>
