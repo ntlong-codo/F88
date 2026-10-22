@@ -7,8 +7,9 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    body { background-color: #f4f6f9; font-size: 15px; }
-    #map { height: 78vh; width: 100%; border-radius: 12px; }
+    body { background-color: #f4f6f9; font-size: 15px; margin: 0; padding: 0; }
+    /* Cố định chiều cao tuyệt đối bằng pixel để trình duyệt không bị lỗi tính toán khung */
+    #map { height: 600px; width: 100%; border-radius: 12px; border: 1px solid #ccc; background-color: #e5e3df; }
     
     #authOverlay {
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
@@ -143,7 +144,6 @@
           document.getElementById("authOverlay").style.display = "none";
           document.getElementById("mainContent").classList.remove("d-none");
           
-          // Khởi tạo khung bản đồ trống trước, sau đó tự động tải dữ liệu
           initMapContainer();
           loadMapDataAndRender();
         } else {
@@ -174,22 +174,27 @@
 
     function initMapContainer() {
       if (map !== null) return;
+      
+      // Khởi tạo bản đồ với tâm tại Cần Thơ / Miền Tây
       map = L.map('map').setView([10.030, 105.770], 10);
+      
+      // Sử dụng nguồn bản đồ nền tiêu chuẩn OpenStreetMap
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap'
+        maxZoom: 19,
+        attribution: '© OpenStreetMap contributors'
       }).addTo(map);
+
       markersGroup = L.layerGroup().addTo(map);
     }
 
-    // TẢI DỮ LIỆU & VẼ BẢN ĐỒ THỦ CÔNG/TỰ ĐỘNG AN TOÀN
     async function loadMapDataAndRender() {
       const btn = document.getElementById("loadMapBtn");
-      btn.innerText = "⏳ Đang tải dữ liệu...";
+      btn.innerText = "⏳ Đang tải...";
       btn.disabled = true;
 
       try {
         if(map) {
-          map.invalidateSize(); // Ép bản đồ làm mới kích thước tránh lỗi màn hình trắng
+          map.invalidateSize();
         }
 
         const resMonths = await fetch(`${API_URL}?action=getMonths`);
@@ -207,7 +212,7 @@
         allMapData = jsonData.data || [];
         
         filterAndRenderMap();
-        btn.innerText = "✅ Đã tải xong";
+        btn.innerText = "✅ Xong";
         setTimeout(() => { btn.innerText = "🔄 Tải Dữ Liệu Bản Đồ"; btn.disabled = false; }, 2000);
       } catch (err) {
         console.error("Lỗi tải dữ liệu bản đồ:", err);
