@@ -19,7 +19,6 @@
       background: rgba(0, 0, 0, 0.85); z-index: 9999;
       display: flex; align-items: center; justify-content: center;
     }
-    /* Tối ưu kích thước nút bấm trên mobile */
     .btn, .form-select, .form-control { min-height: 42px; }
   </style>
 </head>
@@ -57,13 +56,13 @@
       </button>
     </div>
 
-    <!-- KHU VỰC HIỂN THỊ DANH SÁCH DẠNG THẺ (CARD STACK CHO MOBILE) -->
+    <!-- KHU VỰC HIỂN THỊ DANH SÁCH DẠNG THẺ -->
     <div id="customerCardContainer">
       <div class="text-center py-5 text-muted">Đang tải dữ liệu khách hàng...</div>
     </div>
   </div>
 
-  <!-- OFFCANVAS DRAWER (BỘ LỌC THU GỌN CHO MOBILE) -->
+  <!-- OFFCANVAS DRAWER (BỘ LỌC THU GỌN) -->
   <div class="offcanvas offcanvas-end" tabindex="-1" id="filterDrawer">
     <div class="offcanvas-header bg-dark text-white">
       <h5 class="offcanvas-title">⚙️ Bộ Lọc Nâng Cao</h5>
@@ -165,28 +164,51 @@
 
     let allRawData = [];
 
+    window.onload = function() {
+      checkSession();
+    };
+
     function checkSession() {
-      const authData = JSON.parse(localStorage.getItem(AUTH_KEY) || "{}");
-      const now = new Date().getTime();
-      if (authData.pass === AUTH_PASS && authData.expiry && now < authData.expiry) {
-        document.getElementById("authOverlay").classList.add("d-none");
-        document.getElementById("mainContent").classList.remove("d-none");
-        init();
-      } else {
-        document.getElementById("authOverlay").classList.remove("d-none");
-        document.getElementById("mainContent").classList.add("d-none");
+      try {
+        const rawData = localStorage.getItem(AUTH_KEY);
+        if (!rawData) {
+          showLoginScreen();
+          return;
+        }
+        const authData = JSON.parse(rawData);
+        const now = new Date().getTime();
+
+        if (authData.pass === AUTH_PASS && authData.expiry && now < authData.expiry) {
+          document.getElementById("authOverlay").style.display = "none";
+          document.getElementById("mainContent").classList.remove("d-none");
+          init();
+        } else {
+          showLoginScreen();
+        }
+      } catch (e) {
+        showLoginScreen();
       }
     }
 
+    function showLoginScreen() {
+      document.getElementById("authOverlay").style.display = "flex";
+      document.getElementById("mainContent").classList.add("d-none");
+    }
+
     function checkAuth() {
-      const input = document.getElementById("passInput").value;
-      if (input === AUTH_PASS) {
+      const inputEl = document.getElementById("passInput");
+      const errorDiv = document.getElementById("authError");
+      const password = inputEl.value.trim();
+
+      if (password === AUTH_PASS) {
         const expiry = new Date().getTime() + ONE_DAY_MS;
         localStorage.setItem(AUTH_KEY, JSON.stringify({ pass: AUTH_PASS, expiry: expiry }));
-        document.getElementById("authError").classList.add("d-none");
+        errorDiv.classList.add("d-none");
         checkSession();
       } else {
-        document.getElementById("authError").classList.remove("d-none");
+        errorDiv.classList.remove("d-none");
+        inputEl.value = "";
+        inputEl.focus();
       }
     }
 
@@ -196,15 +218,21 @@
     }
 
     async function init() {
-      const res = await fetch(`${API_URL}?action=getMonths`);
-      const json = await res.json();
-      const filterSel = document.getElementById("filterMonth");
-      const syncSel = document.getElementById("syncMonthSelect");
-      json.months.forEach(m => {
-        filterSel.innerHTML += `<option value="${m}">Kỳ ${m}</option>`;
-        syncSel.innerHTML += `<option value="${m}">Kỳ ${m}</option>`;
-      });
-      loadCustomerData();
+      try {
+        const res = await fetch(`${API_URL}?action=getMonths`);
+        const json = await res.json();
+        const filterSel = document.getElementById("filterMonth");
+        const syncSel = document.getElementById("syncMonthSelect");
+        if(json.months) {
+          json.months.forEach(m => {
+            if(filterSel) filterSel.innerHTML += `<option value="${m}">Kỳ ${m}</option>`;
+            if(syncSel) syncSel.innerHTML += `<option value="${m}">Kỳ ${m}</option>`;
+          });
+        }
+        loadCustomerData();
+      } catch(err) {
+        console.error("Lỗi khởi tạo:", err);
+      }
     }
 
     async function loadCustomerData() {
@@ -237,7 +265,7 @@
       let filtered = allRawData.filter(item => {
         if (monthVal && String(item.Thang).trim() !== String(monthVal).trim()) return false;
         if (keyword) {
-          const textSearch = `${item.Ten_khach_hang || ''} ${item.so_hd \vert{}\vert{} ''}${item.sdt || ''}`.toLowerCase();
+          const textSearch = `${item.Ten_khach_hang || ''} ${item.so_hd || ''} ${item.sdt || ''}`.toLowerCase();
           if (!textSearch.includes(keyword)) return false;
         }
         if (fTrangThai && item.Trang_thai_hd !== fTrangThai) return false;
@@ -258,7 +286,6 @@
       renderCards(filtered);
     }
 
-    // RENDER DẠNG THẺ (MOBILE CARD STACK THAY VÌ BẢNG NGANG)
     function renderCards(data) {
       const container = document.getElementById("customerCardContainer");
       if(data.length === 0) {
@@ -284,7 +311,6 @@
 
         return `
           <div class="customer-card ${cardStyleClass}">
-            <!-- Dòng 1: Tên & Số HĐ -->
             <div class="d-flex justify-content-between align-items-start mb-2">
               <div>
                 <h6 class="fw-bold text-primary mb-1">${item.Ten_khach_hang || 'Chưa có tên'}</h6>
@@ -294,9 +320,8 @@
               <div>${checkBadge}</div>
             </div>
 
-            <!-- Dòng 2: SĐT & Trạng thái nhanh -->
             <div class="row g-2 mb-2">
-              <div class="col-12 text-secondary small">📞 SĐT: <b>${item.sdt \vert{}\vert{} '---'}</b> \vert{} Kỳ: <b>${item.Thang || '---'}</b></div>
+              <div class="col-12 text-secondary small">📞 SĐT: <b>${item.sdt || '---'}</b> | Kỳ: <b>${item.Thang || '---'}</b></div>
               
               <div class="col-6">
                 <label class="small text-muted fw-bold mb-0">Trạng thái HĐ:</label>
@@ -321,7 +346,6 @@
               </div>
             </div>
 
-            <!-- Nút mở rộng xem chi tiết -->
             <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
               <div>${gpsBadge}</div>
               <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
@@ -329,11 +353,9 @@
               </button>
             </div>
 
-            <!-- PHẦN NỘI DUNG XỔ XUỐNG (COLLAPSE CHI TIẾT) -->
             <div class="collapse mt-3" id="${collapseId}">
               <div class="p-2 bg-light rounded border">
                 
-                <!-- Thao tác check nhanh -->
                 <div class="mb-3">
                   <div class="small fw-bold mb-1">⚡ Xác thực thực địa:</div>
                   <div class="d-flex gap-2">
@@ -342,7 +364,6 @@
                   </div>
                 </div>
 
-                <!-- Địa chỉ -->
                 <div class="sub-section mb-3 text-secondary small">
                   <b>📍 Địa chỉ:</b><br>
                   - Thường trú: ${item.WARD_HO_KHAU || '---'}<br>
@@ -350,7 +371,6 @@
                   - Shop: ${item.SHOPNAME || '---'}
                 </div>
 
-                <!-- Phân loại độ khó -->
                 <div class="mb-3">
                   <label class="small fw-bold">Độ khó khách hàng:</label>
                   <select class="form-select form-select-sm" onchange="updateFieldAndNotify(${item.rowIndex}, 'Muc_do_kho', this.value)">
@@ -361,13 +381,11 @@
                   </select>
                 </div>
 
-                <!-- Quản lý 5 GPS -->
                 <div class="sub-section mb-3">
                   <div class="small fw-bold text-primary mb-1">🌐 Quản lý Tọa độ GPS:</div>
                   ${renderGpsInputsMobile(item)}
                 </div>
 
-                <!-- Ghi chú & Liên hệ -->
                 <div class="mb-2">
                   <label class="small fw-bold text-success">📝 Ghi chú:</label>
                   <div class="input-group input-group-sm mb-2">
@@ -432,7 +450,7 @@
       const container = document.getElementById("toast-container");
       const bgClass = type === "success" ? "bg-success" : (type === "danger" ? "bg-danger" : "bg-primary");
       const toastId = "toast_" + Date.now();
-      container.insertAdjacentHTML('beforeend`, `
+      container.insertAdjacentHTML('beforeend', `
         <div id="${toastId}" class="toast align-items-center text-white ${bgClass} border-0 shadow show mb-2">
           <div class="d-flex"><div class="toast-body fw-bold">${message}</div></div>
         </div>
@@ -504,8 +522,7 @@
         });
       }
     }
-
-    window.onload = checkSession;
   </script>
 </body>
 </html>
+

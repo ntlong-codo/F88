@@ -8,7 +8,6 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     body { background-color: #f4f6f9; font-size: 15px; }
-    /* Tối ưu chiều cao bản đồ tràn màn hình mobile */
     #map { height: calc(100vh - 80px); width: 100%; border-radius: 12px; }
     
     #authOverlay {
@@ -34,7 +33,6 @@
 
   <div class="container-fluid p-2 d-none" id="mainContent">
     
-    <!-- THANH HEADER ĐIỀU HƯỚNG NHANH -->
     <div class="d-flex justify-content-between align-items-center mb-2 bg-white p-2 rounded shadow-sm">
       <div class="d-flex align-items-center">
         <a href="index.html" class="btn btn-outline-dark btn-sm me-2">⬅️ Danh sách</a>
@@ -47,11 +45,10 @@
       </div>
     </div>
 
-    <!-- KHUNG BẢN ĐỒ LEAFLET MAP -->
     <div id="map" class="shadow-sm"></div>
   </div>
 
-  <!-- OFFCANVAS DRAWER BỘ LỌC BẢN ĐỒ (CHO MOBILE) -->
+  <!-- OFFCANVAS DRAWER BỘ LỌC BẢN ĐỒ -->
   <div class="offcanvas offcanvas-end" tabindex="-1" id="mapFilterDrawer">
     <div class="offcanvas-header bg-danger text-white">
       <h5 class="offcanvas-title fw-bold">⚙️ Lọc Điểm GPS</h5>
@@ -125,36 +122,55 @@
     let map, markersGroup;
     let allMapData = [];
 
-    // --- KIỂM TRA MẬT KHẨU LƯU 24H ---
-    function checkSession() {
-      const authData = JSON.parse(localStorage.getItem(AUTH_KEY) || "{}");
-      const now = new Date().getTime();
+    window.onload = function() {
+      checkSession();
+    };
 
-      if (authData.pass === AUTH_PASS && authData.expiry && now < authData.expiry) {
-        document.getElementById("authOverlay").classList.add("d-none");
-        document.getElementById("mainContent").classList.remove("d-none");
-        initMap();
-      } else {
-        document.getElementById("authOverlay").classList.remove("d-none");
-        document.getElementById("mainContent").classList.add("d-none");
+    function checkSession() {
+      try {
+        const rawData = localStorage.getItem(AUTH_KEY);
+        if (!rawData) {
+          showLoginScreen();
+          return;
+        }
+        const authData = JSON.parse(rawData);
+        const now = new Date().getTime();
+
+        if (authData.pass === AUTH_PASS && authData.expiry && now < authData.expiry) {
+          document.getElementById("authOverlay").style.display = "none";
+          document.getElementById("mainContent").classList.remove("d-none");
+          initMap();
+        } else {
+          showLoginScreen();
+        }
+      } catch (e) {
+        showLoginScreen();
       }
+    }
+
+    function showLoginScreen() {
+      document.getElementById("authOverlay").style.display = "flex";
+      document.getElementById("mainContent").classList.add("d-none");
     }
 
     function checkAuth() {
-      const input = document.getElementById("passInput").value;
-      if (input === AUTH_PASS) {
+      const inputEl = document.getElementById("passInput");
+      const errorDiv = document.getElementById("authError");
+      const password = inputEl.value.trim();
+
+      if (password === AUTH_PASS) {
         const expiry = new Date().getTime() + ONE_DAY_MS;
         localStorage.setItem(AUTH_KEY, JSON.stringify({ pass: AUTH_PASS, expiry: expiry }));
-        document.getElementById("authError").classList.add("d-none");
+        errorDiv.classList.add("d-none");
         checkSession();
       } else {
-        document.getElementById("authError").classList.remove("d-none");
+        errorDiv.classList.remove("d-none");
+        inputEl.value = "";
+        inputEl.focus();
       }
     }
 
-    // --- KHỞI TẠO BẢN ĐỒ ---
     function initMap() {
-      // Tâm bản đồ tại Miền Tây / Cần Thơ
       map = L.map('map', { zoomControl: false }).setView([10.030, 105.770], 10);
       L.control.zoom({ position: 'bottomright' }).addTo(map);
 
@@ -220,7 +236,6 @@
                 radius: isCheckedGps ? 10 : 7
               });
 
-              // Popup thiết kế to rõ cho Mobile
               circleMarker.bindPopup(`
                 <div style="font-size: 14px; min-width: 200px;">
                   <b style="color:#0d6efd; font-size: 15px;">${item.Ten_khach_hang || ''}</b><br>
@@ -250,8 +265,7 @@
       document.getElementById("mapCheck").value = "";
       filterAndRenderMap();
     }
-
-    window.onload = checkSession;
   </script>
 </body>
 </html>
+
