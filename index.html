@@ -273,7 +273,7 @@
       return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
     }
 
-    // HÀM XỬ LÝ CHUỖI GPS: Xử lý 3 dấu phẩy -> đổi 2 dấu phẩy 2 bên thành dấu chấm
+    // HÀM XỬ LÝ CHUỖI GPS: Xử lý 3 dấu phẩy -> đổi 2 dấu phẩy 2 bên thành dấu chấm[cite: 3]
     function cleanGpsString(rawStr) {
       if (!rawStr || typeof rawStr !== 'string') return '';
       let str = rawStr.trim();
@@ -624,7 +624,7 @@
     }
     async function updateFieldAndNotify(r, f, v) { await updateField(r, f, v); showToast("Đã cập nhật!"); }
     async function updateField(r, f, v) { await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "updateCustomer", rowIndex: r, data: { [f]: v } }) }); }
-    async function saveGpsField(r, k) { await updateField(r, k, document.getElementById(`input_${r}_${k}`).value); showToast(`Dã lưu ${k}!`); }
+    async function saveGpsField(r, k) { await updateField(r, k, document.getElementById(`input_${r}_${k}`).value); showToast(`Đã lưu ${k}!`); }
     function getCurrentLocation(r, k) {
       navigator.geolocation.getCurrentPosition(pos => {
         const c = `${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`;
