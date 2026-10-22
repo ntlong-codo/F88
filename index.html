@@ -106,6 +106,13 @@
         </select>
       </div>
       <div class="mb-3">
+        <label class="form-label fw-bold small">Trạng Thái Thanh Toán:</label>
+        <select id="filterThanhToan" class="form-select" onchange="filterData(); updateFilterCount();">
+          <option value="chua_thanh_toan" selected>Chưa thanh toán (Dưới 500k)</option>
+          <option value="da_thanh_toan_tren_500k">Đã thanh toán trên 500.000</option>
+        </select>
+      </div>
+      <div class="mb-3">
         <label class="form-label fw-bold small">Khả Năng Thanh Toán:</label>
         <select id="filterTrangThaiHd" class="form-select" onchange="filterData(); updateFilterCount();">
           <option value="">Tất cả</option>
@@ -273,7 +280,6 @@
       return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
     }
 
-    // HÀM XỬ LÝ CHUỖI GPS: Xử lý 3 dấu phẩy -> đổi 2 dấu phẩy 2 bên thành dấu chấm[cite: 3]
     function cleanGpsString(rawStr) {
       if (!rawStr || typeof rawStr !== 'string') return '';
       let str = rawStr.trim();
@@ -313,6 +319,7 @@
     function updateFilterCount() {
       let count = 0;
       if(document.getElementById("filterMonth").value) count++;
+      if(document.getElementById("filterThanhToan").value !== "chua_thanh_toan") count++;
       if(document.getElementById("filterTrangThaiHd").value) count++;
       if(document.getElementById("filterTimNha").value) count++;
       if(document.getElementById("filterDoKho").value) count++;
@@ -325,6 +332,8 @@
       let filtered = [];
       const gpsKeys = ['GPS_Chinh', 'GPS_1', 'GPS_2', 'GPS_3', 'GPS_4', 'GPS_5', 'GPS_AP_NEW', 'GPS_AP_OLD'];
 
+      const fThanhToan = document.getElementById("filterThanhToan").value;
+
       if (isGpsFilterActive) {
         const monthVal = document.getElementById("gpsFilterMonth").value;
         const checkState = document.getElementById("gpsFilterCheckState").value;
@@ -336,6 +345,11 @@
           if (checkState === 'DaCheckGps' && item.Check_GPS !== 'Đã Check GPS') return null;
           if (checkState === 'DaCheckAo' && item.Check_Ao !== 'Đã Check Áo') return null;
           if (checkState === 'ChuaCheck' && (item.Check_GPS === 'Đã Check GPS' || item.Check_Ao === 'Đã Check Áo')) return null;
+
+          // Lọc theo điều kiện thanh toán
+          const paidAmount = Number(item.So_tien_thanh_toan) || 0;
+          if (fThanhToan === 'chua_thanh_toan' && paidAmount >= 500000) return null;
+          if (fThanhToan === 'da_thanh_toan_tren_500k' && paidAmount < 500000) return null;
 
           let minDist = Infinity;
           if (myCurrentCoords) {
@@ -363,6 +377,12 @@
         filtered = allRawData.filter(item => {
           if (monthVal && String(item.Thang).trim() !== String(monthVal).trim()) return false;
           if (keyword && !`${item.Ten_khach_hang || ''} ${item.so_hd || ''}`.toLowerCase().includes(keyword)) return false;
+          
+          // Lọc theo điều kiện thanh toán
+          const paidAmount = Number(item.So_tien_thanh_toan) || 0;
+          if (fThanhToan === 'chua_thanh_toan' && paidAmount >= 500000) return false;
+          if (fThanhToan === 'da_thanh_toan_tren_500k' && paidAmount < 500000) return false;
+
           if (fTrangThai && item.Trang_thai_hd !== fTrangThai) return false;
           if (fTimNha && item.Trang_thai_tim_nha !== fTimNha) return false;
           if (fDoKho && item.Muc_do_kho !== fDoKho) return false;
@@ -614,6 +634,7 @@
       const now = new Date();
       const currentMmyyyy = String(now.getMonth() + 1).padStart(2, '0') + now.getFullYear();
       document.getElementById("filterMonth").value = currentMmyyyy; 
+      document.getElementById("filterThanhToan").value = "chua_thanh_toan";
       document.getElementById("searchKeyword").value = "";
       document.getElementById("filterTrangThaiHd").value = ""; 
       document.getElementById("filterTimNha").value = "";
