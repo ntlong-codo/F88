@@ -117,7 +117,7 @@
     let myCoords = null; 
     let allMapData = [];
     let filteredMapData = [];
-    let markerRegistry = {}; // Lưu trữ marker để trỏ tới khi click
+    let markerRegistry = {}; 
 
     window.onload = function() {
       initMap();
@@ -144,7 +144,7 @@
           icon: L.divIcon({className: 'my-location-marker', iconSize: [16,16], iconAnchor: [8,8]})
         }).addTo(map).bindPopup("<b>📍 Vị trí của bạn</b>");
         map.setView([myCoords.lat, myCoords.lng], 15);
-        filterAndRenderMap(); // Sắp xếp lại danh sách theo khoảng cách mới nhất
+        filterAndRenderMap(); 
       }, () => {}, { enableHighAccuracy: true });
     }
 
@@ -154,6 +154,22 @@
       const dLon = (lon2 - lon1) * Math.PI / 180;
       const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
       return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+    }
+
+    // HÀM XỬ LÝ TỌA ĐỘ THÔNG MINH (Ưu tiên lọc đúng cặp số Lat, Lng hợp lệ kể cả khi có nhiều dấu phẩy)
+    function parseGpsCoord(rawStr) {
+      if (!rawStr || typeof rawStr !== 'string') return null;
+      let parts = rawStr.split(',').map(s => s.trim());
+      if (parts.length >= 2) {
+        for (let i = 0; i < parts.length - 1; i++) {
+          let lat = parseFloat(parts[i]);
+          let lng = parseFloat(parts[i+1]);
+          if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+            return { lat: lat, lng: lng };
+          }
+        }
+      }
+      return null;
     }
 
     async function loadMapDataAndRender() {
@@ -221,23 +237,16 @@
         if (fTrangThai && item.Trang_thai_hd !== fTrangThai) return;
         if (fTimNha && item.Trang_thai_tim_nha !== fTimNha) return;
 
-        // Tính khoảng cách gần nhất trong các điểm GPS của khách này so với vị trí hiện tại
         let minDistance = Infinity;
         let hasValidGps = false;
 
         gpsKeys.forEach(key => {
-          const rawVal = item[key];
-          if (rawVal && String(rawVal).includes(',')) {
-            let p = String(rawVal).split(',');
-            let lat = parseFloat(p[0].trim()); 
-            let lng = parseFloat(p[1].trim());
-            
-            if (!isNaN(lat) && !isNaN(lng)) {
-              hasValidGps = true;
-              if (myCoords) {
-                let dist = calculateDistance(myCoords.lat, myCoords.lng, lat, lng);
-                if (dist < minDistance) minDistance = dist;
-              }
+          const coordObj = parseGpsCoord(item[key]);
+          if (coordObj) {
+            hasValidGps = true;
+            if (myCoords) {
+              let dist = calculateDistance(myCoords.lat, myCoords.lng, coordObj.lat, coordObj.lng);
+              if (dist < minDistance) minDistance = dist;
             }
           }
         });
@@ -251,46 +260,39 @@
         const color = item.Check_GPS === 'Đã Check GPS' ? '#198754' : '#0d6efd';
 
         gpsKeys.forEach((key, idx) => {
-          const rawVal = item[key];
-          if (rawVal && String(rawVal).includes(',')) {
-            let p = String(rawVal).split(',');
-            let lat = parseFloat(p[0].trim()); 
-            let lng = parseFloat(p[1].trim());
-            
-            if (!isNaN(lat) && !isNaN(lng)) {
-              totalGpsCount++;
-              let distHtml = myCoords ? `<br><b>📍 Khoảng cách:</b> <span class="text-danger fw-bold">${calculateDistance(myCoords.lat, myCoords.lng, lat, lng)} km</span>` : '';
-              let labelText = key.includes('AP') ? (key.includes('NEW') ? 'New' : 'Old') : (key === 'GPS_Chinh' ? 'C' : idx);
+          const coordObj = parseGpsCoord(item[key]);
+          if (coordObj) {
+            totalGpsCount++;
+            let distHtml = myCoords ? `<br><b>📍 Khoảng cách:</b> <span class="text-danger fw-bold">${calculateDistance(myCoords.lat, myCoords.lng, coordObj.lat, coordObj.lng)} km</span>` : '';
+            let labelText = key.includes('AP') ? (key.includes('NEW') ? 'New' : 'Old') : (key === 'GPS_Chinh' ? 'C' : idx);
 
-              let marker = L.marker([lat, lng], {
-                icon: L.divIcon({ className: 'gps-badge-icon', html: `<div class="gps-marker-num" style="background-color: ${color}; opacity: ${opacity};">${labelText}</div>`, iconSize: [26,26], iconAnchor: [13,13] })
-              });
+            let marker = L.marker([coordObj.lat, coordObj.lng], {
+              icon: L.divIcon({ className: 'gps-badge-icon', html: `<div class="gps-marker-num" style="background-color: ${color}; opacity: ${opacity};">${labelText}</div>`, iconSize: [26,26], iconAnchor: [13,13] })
+            });
 
-              marker.bindPopup(`
-                <div style="font-size: 13px; min-width: 210px; line-height: 1.4;">
-                  <b style="color:#0d6efd; font-size: 15px;">${item.Ten_khach_hang || ''}</b><br>
-                  <small class="text-muted"><b>Điểm:</b> ${gpsLabels[key]} ${isPaid ? '(Đã TT)' : ''}</small>
-                  ${distHtml}
-                  <hr class="my-1">
-                  <b>Số HĐ:</b> <code>${item.so_hd || '---'}</code><br>
-                  <b>Khả năng:</b> ${item.Trang_thai_hd || 'Chưa biết'}<br>
-                  <b>Đã TT:</b> ${isPaid ? Number(item.So_tien_thanh_toan).toLocaleString() + ' VNĐ' : 'Chưa'}<br>
-                  <hr class="my-1">
-                  <b>🏠 Thường trú:</b> ${item.WARD_HO_KHAU || '---'}<br>
-                  <b>🏡 Ấp New:</b> ${item.WARD_HO_KHAU_AP_NEW || '---'}<br>
-                  <b>🏡 Ấp Old:</b> ${item.WARD_HO_KHAU_AP_OLD || '---'}<br>
-                  <hr class="my-1">
-                  <a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" class="btn btn-sm btn-danger text-white w-100 fw-bold mt-1 p-2">🧭 DẪN ĐƯỜNG GOOGLE MAPS</a>
-                </div>
-              `);
-              markersGroup.addLayer(marker);
-              markerRegistry[`${item.rowIndex}_${key}`] = { marker: marker, latlng: [lat, lng] };
-            }
+            marker.bindPopup(`
+              <div style="font-size: 13px; min-width: 210px; line-height: 1.4;">
+                <b style="color:#0d6efd; font-size: 15px;">${item.Ten_khach_hang || ''}</b><br>
+                <small class="text-muted"><b>Điểm:</b> ${gpsLabels[key]} ${isPaid ? '(Đã TT)' : ''}</small>
+                ${distHtml}
+                <hr class="my-1">
+                <b>Số HĐ:</b> <code>${item.so_hd || '---'}</code><br>
+                <b>Khả năng:</b> ${item.Trang_thai_hd || 'Chưa biết'}<br>
+                <b>Đã TT:</b> ${isPaid ? Number(item.So_tien_thanh_toan).toLocaleString() + ' VNĐ' : 'Chưa'}<br>
+                <hr class="my-1">
+                <b>🏠 Thường trú:</b> ${item.WARD_HO_KHAU || '---'}<br>
+                <b>🏡 Ấp New:</b> ${item.WARD_HO_KHAU_AP_NEW || '---'}<br>
+                <b>🏡 Ấp Old:</b> ${item.WARD_HO_KHAU_AP_OLD || '---'}<br>
+                <hr class="my-1">
+                <a href="https://www.google.com/maps?q=${coordObj.lat},${coordObj.lng}" target="_blank" class="btn btn-sm btn-danger text-white w-100 fw-bold mt-1 p-2">🧭 DẪN ĐƯỜNG GOOGLE MAPS</a>
+              </div>
+            `);
+            markersGroup.addLayer(marker);
+            markerRegistry[`${item.rowIndex}_${key}`] = { marker: marker, latlng: [coordObj.lat, coordObj.lng] };
           }
         });
       });
 
-      // Sắp xếp danh sách khách hàng bên trái theo khoảng cách gần nhất
       filteredMapData.sort((a, b) => a._nearestDist - b._nearestDist);
 
       document.getElementById("statCustomers").innerText = filteredMapData.length;
@@ -299,7 +301,6 @@
       renderSidebarList();
     }
 
-    // HIỂN THỊ TOÀN BỘ DANH SÁCH BÊN TRÁI
     function renderSidebarList() {
       const container = document.getElementById("sidebarCustomerList");
       
@@ -311,19 +312,19 @@
       const gpsKeys = ['GPS_Chinh', 'GPS_1', 'GPS_2', 'GPS_3', 'GPS_4', 'GPS_5', 'GPS_AP_NEW', 'GPS_AP_OLD'];
       const gpsLabels = { 
         'GPS_Chinh': '📍 GPS Chính', 'GPS_1': '📍 GPS 1', 'GPS_2': '📍 GPS 2', 
-        'GPS_3': '📍 GPS 3', 'GPS_4': 'GPS 4', 'GPS_5': 'GPS 5', 
+        'GPS_3': '📍 GPS 3', 'GPS_4': '📍 GPS 4', 'GPS_5': '📍 GPS 5', 
         'GPS_AP_NEW': '🏡 GPS Ấp New', 'GPS_AP_OLD': '🏡 GPS Ấp Old' 
       };
 
       container.innerHTML = filteredMapData.map(item => {
         let treeHtml = '';
         gpsKeys.forEach(key => {
-          const val = item[key];
-          if (val && String(val).includes(',')) {
+          const coordObj = parseGpsCoord(item[key]);
+          if (coordObj) {
             treeHtml += `
               <div class="gps-tree-item" onclick="panToGpsMarker('${item.rowIndex}', '${key}')">
                 <span>${gpsLabels[key]}</span>
-                <small class="font-monospace text-muted">${val}</small>
+                <small class="font-monospace text-muted">${coordObj.lat}, ${coordObj.lng}</small>
               </div>
             `;
           }
@@ -348,7 +349,6 @@
       }).join('');
     }
 
-    // BẤM VÀO ĐIỂM TRÊN TREE MENU SẼ PAN SANG BẢN ĐỒ VÀ MỞ POPUP
     window.panToGpsMarker = function(rowIndex, key) {
       const reg = markerRegistry[`${rowIndex}_${key}`];
       if (reg) {
