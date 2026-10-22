@@ -318,7 +318,6 @@
 
         return `
           <div class="customer-card ${cardStyleClass}">
-            <!-- Dòng 1: Tên, Số HĐ và Dropdown Tìm nhà ở góc phải -->
             <div class="d-flex justify-content-between align-items-start mb-2 gap-2">
               <div>
                 <h6 class="fw-bold text-primary mb-1">${item.Ten_khach_hang || 'Chưa có tên'}</h6>
@@ -337,7 +336,6 @@
               </div>
             </div>
 
-            <!-- Dòng 2: SĐT và Trạng thái HĐ / Độ khó -->
             <div class="row g-2 mb-2">
               <div class="col-12 text-secondary small">📞 SĐT: <b>${item.sdt || '---'}</b> | Kỳ: <b>${item.Thang || '---'}</b></div>
               
@@ -351,7 +349,6 @@
                 </select>
               </div>
 
-              <!-- Đã đem Độ khó lên vị trí cũ của Tìm nhà -->
               <div class="col-6">
                 <label class="small text-muted fw-bold mb-0">Độ khó:</label>
                 <select class="form-select form-select-sm" onchange="updateFieldAndNotify(${item.rowIndex}, 'Muc_do_kho', this.value)">
@@ -437,6 +434,7 @@
       return html;
     }
 
+    // CHECK GPS TỰ ĐỘNG ĐIỀN VÀO Ô CÒN THIẾU TỪ CHÍNH ĐẾN 5 VÀ LƯU NGAY
     async function doCheckGps(rowIndex) {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(async position => {
@@ -454,12 +452,49 @@
             }
           }
 
+          // Cập nhật bộ nhớ đệm ứng dụng
+          item[targetKey] = coordStr;
+          item['Check_GPS'] = 'Đã Check GPS';
+          item['Check_Ao'] = '';
+
+          // Gửi lưu trực tiếp lên Google Sheets
           await updateField(rowIndex, targetKey, coordStr);
           await updateField(rowIndex, 'Check_GPS', 'Đã Check GPS');
           await updateField(rowIndex, 'Check_Ao', ''); 
           
           showToast(`Check GPS thành công vào [${targetKey}]: ${coordStr}`);
           loadCustomerData();
+        }, () => showToast("Không thể lấy vị trí GPS!", "danger"));
+      }
+    }
+
+    // SỬA LỖI HÀM LƯU TỌA ĐỘ GPS LÊN TAB DATA
+    async function saveGpsField(rowIndex, key) {
+      const inputEl = document.getElementById(`input_${rowIndex}_${key}`);
+      if (!inputEl) return;
+      const val = inputEl.value.trim();
+      
+      // Cập nhật giá trị vào biến bộ nhớ cục bộ
+      const item = allRawData.find(d => d.rowIndex === rowIndex);
+      if (item) item[key] = val;
+
+      await updateField(rowIndex, key, val);
+      showToast(`Đã lưu ${key} thành công!`);
+    }
+
+    // LẤY VỊ TRÍ HIỆN TẠI VÀ LƯU NGAY VÀO GOOGLE SHEETS
+    function getCurrentLocation(rowIndex, key) {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(async position => {
+          const coordStr = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
+          const inputEl = document.getElementById(`input_${rowIndex}_${key}`);
+          if (inputEl) inputEl.value = coordStr;
+          
+          const item = allRawData.find(d => d.rowIndex === rowIndex);
+          if (item) item[key] = coordStr;
+
+          await updateField(rowIndex, key, coordStr);
+          showToast(`Đã lưu vị trí ${key}: ${coordStr}`);
         }, () => showToast("Không thể lấy vị trí GPS!", "danger"));
       }
     }
@@ -530,23 +565,6 @@
       const val = document.getElementById(elementId).value;
       await updateField(rowIndex, fieldName, val);
       showToast(successMsg);
-    }
-
-    async function saveGpsField(rowIndex, key) {
-      const val = document.getElementById(`input_${rowIndex}_${key}`).value;
-      await updateField(rowIndex, key, val);
-      showToast(`Đã lưu ${key}!`);
-    }
-
-    function getCurrentLocation(rowIndex, key) {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(position => {
-          const coordStr = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
-          document.getElementById(`input_${rowIndex}_${key}`).value = coordStr;
-          updateField(rowIndex, key, coordStr);
-          showToast(`Đã lấy vị trí: ${coordStr}`);
-        });
-      }
     }
   </script>
 </body>
