@@ -2,41 +2,60 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>Quản Lý Thu Hồi Nợ - Bộ Lọc Nâng Cao</title>
+  <title>Quản Lý Thu Hồi Nợ</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <style>
     .nested-row { background-color: #f8f9fa !important; }
     .sub-section { border-left: 3px solid #0d6efd; padding-left: 12px; margin-bottom: 10px; }
     .row-check-ao { background-color: #f3e8ff !important; } 
     .row-check-gps { background-color: #e8f5e9 !important; } 
+    #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 1055; }
+    
+    /* Giao diện khóa mật khẩu Overlay */
+    #authOverlay {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0, 0, 0, 0.85); z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+    }
   </style>
 </head>
 <body class="bg-light">
-  <div class="container-fluid my-4 px-4">
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h2>📋 Quản Lý Khách Hàng & Bộ Lọc Thực Địa</h2>
-  <div>
-    <button class="btn btn-warning me-2 fw-bold" onclick="syncDataFromSheets()">🔄 Đồng bộ dữ liệu tháng</button>
-    <a href="map.html" class="btn btn-danger">🗺️ Xem Bản Đồ GPS</a>
-  </div>
-</div>
 
-    <!-- THANH CÔNG CỤ BỘ LỌC & TÌM KIẾM -->
+  <!-- FRAME KHÓA MẬT KHẨU -->
+  <div id="authOverlay">
+    <div class="card p-4 shadow-lg text-center" style="max-width: 380px; width: 90%;">
+      <h4 class="mb-3">🔐 BẢO MẬT HỆ THỐNG</h4>
+      <p class="text-muted small">Vui lòng nhập mật khẩu để tiếp tục (Lưu đăng nhập 24h)</p>
+      <input type="password" id="passInput" class="form-control mb-3 text-center fs-5" placeholder="Nhập mật khẩu..." onkeyup="if(event.key==='Enter') checkAuth()">
+      <button class="btn btn-primary w-100 fw-bold" onclick="checkAuth()">XÁC NHẬN DĂNG NHẬP</button>
+      <div id="authError" class="text-danger small mt-2 d-none">Mật khẩu không chính xác!</div>
+    </div>
+  </div>
+
+  <!-- NỘI DUNG CHÍNH WEBSITE -->
+  <div class="container-fluid my-4 px-4 d-none" id="mainContent">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h2>📋 Quản Lý Khách Hàng & Thu Hồi Nợ</h2>
+      <div>
+        <button class="btn btn-warning me-2 fw-bold" data-bs-toggle="modal" data-bs-target="#syncModal">🔄 Đồng bộ dữ liệu</button>
+        <a href="map.html" class="btn btn-danger me-2">🗺️ Xem Bản Đồ GPS</a>
+        <button class="btn btn-outline-secondary btn-sm" onclick="logout()">🔒 Đăng xuất</button>
+      </div>
+    </div>
+
+    <!-- CÔNG CỤ TÌM KIẾM & BỘ LỌC -->
     <div class="card p-3 mb-3 shadow-sm">
       <div class="row g-2 align-items-center">
-        <!-- Chọn kỳ tháng -->
         <div class="col-md-2">
           <label class="form-label fw-bold small mb-1">Kỳ tháng:</label>
           <select id="filterMonth" class="form-select form-select-sm" onchange="filterData()">
             <option value="">-- Tất cả tháng --</option>
           </select>
         </div>
-        <!-- Tìm theo tên hoặc SĐT/HĐ -->
         <div class="col-md-3">
-          <label class="form-label fw-bold small mb-1">Tìm kiếm khách hàng:</label>
-          <input type="text" id="searchKeyword" class="form-control form-select-sm" placeholder="Nhập tên, số HĐ, SĐT..." oninput="filterData()">
+          <label class="form-label fw-bold small mb-1">Tìm kiếm:</label>
+          <input type="text" id="searchKeyword" class="form-control form-control-sm" placeholder="Tên, số HĐ, SĐT..." oninput="filterData()">
         </div>
-        <!-- Lọc Trạng thái HĐ -->
         <div class="col-md-2">
           <label class="form-label fw-bold small mb-1">Trạng thái HĐ:</label>
           <select id="filterTrangThaiHd" class="form-select form-select-sm" onchange="filterData()">
@@ -47,18 +66,18 @@
             <option value="Hứa">Hứa</option>
           </select>
         </div>
-        <!-- Lọc Tìm nhà -->
         <div class="col-md-2">
           <label class="form-label fw-bold small mb-1">Tìm nhà:</label>
           <select id="filterTimNha" class="form-select form-select-sm" onchange="filterData()">
             <option value="">Tất cả</option>
             <option value="Chưa tìm">Chưa tìm</option>
-            <option value="Dễ tìm">Dễ tìm</option>
-            <option value="Khó tìm">Khó tìm</option>
-            <option value="Không tìm thấy">Không tìm thấy</option>
+            <option value="Đã tới Ấp">Đã tới Ấp</option>
+            <option value="Bỏ địa phương">Bỏ địa phương</option>
+            <option value="Có người biết">Có người biết</option>
+            <option value="Gặp người thân">Gặp người thân</option>
+            <option value="Gặp khách hàng">Gặp khách hàng</option>
           </select>
         </div>
-        <!-- Lọc Độ khó -->
         <div class="col-md-2">
           <label class="form-label fw-bold small mb-1">Độ khó:</label>
           <select id="filterDoKho" class="form-select form-select-sm" onchange="filterData()">
@@ -69,7 +88,6 @@
             <option value="Rất khó">Rất khó</option>
           </select>
         </div>
-        <!-- Lọc Trạng thái Check & GPS -->
         <div class="col-md-2">
           <label class="form-label fw-bold small mb-1">Trạng thái Check:</label>
           <select id="filterCheck" class="form-select form-select-sm" onchange="filterData()">
@@ -83,29 +101,29 @@
           <label class="form-label fw-bold small mb-1">Tọa độ GPS:</label>
           <select id="filterHasGps" class="form-select form-select-sm" onchange="filterData()">
             <option value="">Tất cả</option>
-            <option value="HasGps">Có GPS (Ít nhất 1)</option>
+            <option value="HasGps">Có GPS</option>
             <option value="NoGps">Chưa có GPS</option>
           </select>
         </div>
         <div class="col-md-2 d-flex align-items-end">
-          <button class="btn btn-outline-secondary btn-sm w-100 mt-3" onclick="resetFilters()">🔄 Đặt lại bộ lọc</button>
+          <button class="btn btn-outline-secondary btn-sm w-100 mt-3" onclick="resetFilters()">🔄 Đặt lại lọc</button>
         </div>
       </div>
     </div>
 
-    <!-- Bảng dữ liệu -->
+    <!-- BẢNG DỮ LIỆU -->
     <div class="card shadow-sm">
       <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
           <thead class="table-dark">
             <tr>
               <th style="width: 4%;">#</th>
-              <th style="width: 18%;">HĐ & Tên Khách Hàng</th>
+              <th style="width: 20%;">HĐ & Tên Khách Hàng</th>
               <th style="width: 13%;">Trạng thái HĐ</th>
-              <th style="width: 13%;">Tìm nhà</th>
+              <th style="width: 14%;">Tìm nhà</th>
               <th style="width: 12%;">Độ khó</th>
-              <th style="width: 12%;">Check</th>
-              <th style="width: 12%;">GPS</th>
+              <th style="width: 11%;">Check</th>
+              <th style="width: 10%;">GPS</th>
               <th style="width: 16%;">Chi tiết</th>
             </tr>
           </thead>
@@ -117,17 +135,85 @@
     </div>
   </div>
 
+  <!-- FORM MODAL ĐỒNG BỘ DỮ LIỆU TÙY CHỌN -->
+  <div class="modal fade" id="syncModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold">🔄 Đồng Bộ Dữ Liệu Từ Sheet</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="small text-muted mb-3">Hệ thống sẽ cập nhật thông tin khách hàng vào tab Data. Dữ liệu GPS và Ghi chú cũ sẽ được giữ nguyên an toàn.</p>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Chọn kỳ tháng cần đồng bộ:</label>
+            <select id="syncMonthSelect" class="form-select">
+              <option value="">⚡ Đồng bộ TẤT CẢ các tháng</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+          <button type="button" class="btn btn-primary" onclick="executeSync()">Thực hiện đồng bộ</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbzh3d9qWgoJCwwP6DqDWLIeBDOkOIZqJW8e-nnas23CZpJRFW-w1umUCmE74KOrqLO4/exec"; 
+    const API_URL = "https://script.google.com/macros/s/AKfycbzFAqD9A4puhEqUd4tK2AiAIomat8nJd2r2YTPFap682q_SqF5ZqZiM6F0sVrb0PGv9/exec"; 
+    const AUTH_KEY = "app_auth_session";
+    const AUTH_PASS = "124985";
+    const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
     let allRawData = [];
 
+    // --- KIỂM TRA MẬT KHẨU & ĐĂNG NHẬP 1 NGÀY ---
+    function checkSession() {
+      const authData = JSON.parse(localStorage.getItem(AUTH_KEY) || "{}");
+      const now = new Date().getTime();
+
+      if (authData.pass === AUTH_PASS && authData.expiry && now < authData.expiry) {
+        document.getElementById("authOverlay").classList.add("d-none");
+        document.getElementById("mainContent").classList.remove("d-none");
+        init();
+      } else {
+        document.getElementById("authOverlay").classList.remove("d-none");
+        document.getElementById("mainContent").classList.add("d-none");
+      }
+    }
+
+    function checkAuth() {
+      const input = document.getElementById("passInput").value;
+      if (input === AUTH_PASS) {
+        const expiry = new Date().getTime() + ONE_DAY_MS;
+        localStorage.setItem(AUTH_KEY, JSON.stringify({ pass: AUTH_PASS, expiry: expiry }));
+        document.getElementById("authError").classList.add("d-none");
+        checkSession();
+      } else {
+        document.getElementById("authError").classList.remove("d-none");
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem(AUTH_KEY);
+      location.reload();
+    }
+
+    // --- KHỞI TẠO VÀ TẢI DỮ LIỆU ---
     async function init() {
       const res = await fetch(`${API_URL}?action=getMonths`);
       const json = await res.json();
-      const select = document.getElementById("filterMonth");
+      
+      const filterSel = document.getElementById("filterMonth");
+      const syncSel = document.getElementById("syncMonthSelect");
+      
       json.months.forEach(m => {
-        select.innerHTML += `<option value="${m}">Kỳ ${m}</option>`;
+        filterSel.innerHTML += `<option value="${m}">Kỳ ${m}</option>`;
+        syncSel.innerHTML += `<option value="${m}">Chỉ đồng bộ kỳ ${m}</option>`;
       });
       loadCustomerData();
     }
@@ -149,30 +235,18 @@
       const fHasGps = document.getElementById("filterHasGps").value;
 
       let filtered = allRawData.filter(item => {
-        // Lọc tháng
         if (monthVal && String(item.Thang).trim() !== String(monthVal).trim()) return false;
-        
-        // Lọc từ khóa (tên, số HĐ, SĐT)
         if (keyword) {
           const textSearch = `${item.Ten_khach_hang || ''} ${item.so_hd || ''} ${item.sdt || ''}`.toLowerCase();
           if (!textSearch.includes(keyword)) return false;
         }
-
-        // Lọc trạng thái HĐ
         if (fTrangThai && item.Trang_thai_hd !== fTrangThai) return false;
-
-        // Lọc tìm nhà
         if (fTimNha && item.Trang_thai_tim_nha !== fTimNha) return false;
-
-        // Lọc độ khó
         if (fDoKho && item.Muc_do_kho !== fDoKho) return false;
-
-        // Lọc check
         if (fCheck === 'DaCheckGps' && item.Check_GPS !== 'Đã Check GPS') return false;
         if (fCheck === 'DaCheckAo' && item.Check_Ao !== 'Đã Check Áo') return false;
         if (fCheck === 'ChuaCheck' && (item.Check_GPS === 'Đã Check GPS' || item.Check_Ao === 'Đã Check Áo')) return false;
 
-        // Lọc có GPS
         const gpsFields = ['GPS_Chinh', 'GPS_1', 'GPS_2', 'GPS_3', 'GPS_4', 'GPS_5'];
         const hasAnyGps = gpsFields.some(k => item[k] && String(item[k]).includes(','));
         if (fHasGps === 'HasGps' && !hasAnyGps) return false;
@@ -212,10 +286,12 @@
             <td>${idx + 1}</td>
             <td>
               <strong class="text-primary">${item.Ten_khach_hang || ''}</strong><br>
-              <small class="text-muted">HĐ: ${item.so_hd || ''} | SĐT: ${item.sdt || '---'}</small>
+              <small class="text-muted">HĐ: <code>${item.so_hd || ''}</code></small>
+              <button class="btn btn-sm btn-link p-0 ms-1" onclick="copyToClipboard('${item.so_hd}')" title="Copy số hợp đồng">📋</button><br>
+              <small class="text-secondary">SĐT: ${item.sdt || '---'}</small>
             </td>
             <td>
-              <select class="form-select form-select-sm" onchange="updateField(${item.rowIndex}, 'Trang_thai_hd', this.value)">
+              <select class="form-select form-select-sm" onchange="updateFieldAndNotify(${item.rowIndex}, 'Trang_thai_hd', this.value)">
                 <option value="Nợ" ${item.Trang_thai_hd === 'Nợ' ? 'selected' : ''}>🔴 Nợ</option>
                 <option value="Trả một phần" ${item.Trang_thai_hd === 'Trả một phần' ? 'selected' : ''}>🟡 Trả một phần</option>
                 <option value="Tất toán" ${item.Trang_thai_hd === 'Tất toán' ? 'selected' : ''}>🟢 Tất toán</option>
@@ -223,15 +299,17 @@
               </select>
             </td>
             <td>
-              <select class="form-select form-select-sm" onchange="updateField(${item.rowIndex}, 'Trang_thai_tim_nha', this.value)">
+              <select class="form-select form-select-sm" onchange="updateFieldAndNotify(${item.rowIndex}, 'Trang_thai_tim_nha', this.value)">
                 <option value="Chưa tìm" ${item.Trang_thai_tim_nha === 'Chưa tìm' ? 'selected' : ''}>⚪ Chưa tìm</option>
-                <option value="Dễ tìm" ${item.Trang_thai_tim_nha === 'Dễ tìm' ? 'selected' : ''}>🟢 Dễ tìm</option>
-                <option value="Khó tìm" ${item.Trang_thai_tim_nha === 'Khó tìm' ? 'selected' : ''}>🟠 Khó tìm</option>
-                <option value="Không tìm thấy" ${item.Trang_thai_tim_nha === 'Không tìm thấy' ? 'selected' : ''}>🔴 Không tìm thấy</option>
+                <option value="Đã tới Ấp" ${item.Trang_thai_tim_nha === 'Đã tới Ấp' ? 'selected' : ''}>🟡 Đã tới Ấp</option>
+                <option value="Bỏ địa phương" ${item.Trang_thai_tim_nha === 'Bỏ địa phương' ? 'selected' : ''}>🔴 Bỏ địa phương</option>
+                <option value="Có người biết" ${item.Trang_thai_tim_nha === 'Có người biết' ? 'selected' : ''}>🔵 Có người biết</option>
+                <option value="Gặp người thân" ${item.Trang_thai_tim_nha === 'Gặp người thân' ? 'selected' : ''}>🟣 Gặp người thân</option>
+                <option value="Gặp khách hàng" ${item.Trang_thai_tim_nha === 'Gặp khách hàng' ? 'selected' : ''}>🟢 Gặp khách hàng</option>
               </select>
             </td>
             <td>
-              <select class="form-select form-select-sm" onchange="updateField(${item.rowIndex}, 'Muc_do_kho', this.value)">
+              <select class="form-select form-select-sm" onchange="updateFieldAndNotify(${item.rowIndex}, 'Muc_do_kho', this.value)">
                 <option value="Dễ" ${item.Muc_do_kho === 'Dễ' ? 'selected' : ''}>🟢 Dễ</option>
                 <option value="Trung bình" ${item.Muc_do_kho === 'Trung bình' ? 'selected' : ''}>🟡 Trung bình</option>
                 <option value="Khó" ${item.Muc_do_kho === 'Khó' ? 'selected' : ''}>🟠 Khó</option>
@@ -275,7 +353,7 @@
                     <h6 class="fw-bold text-success">📝 Ghi chú</h6>
                     <div class="input-group input-group-sm">
                       <input type="text" id="note_${item.rowIndex}" class="form-control" value="${item.Ghi_chu || ''}">
-                      <button class="btn btn-success" type="button" onclick="saveSubData(${item.rowIndex}, 'Ghi_chu', 'note_${item.rowIndex}')">Lưu</button>
+                      <button class="btn btn-success" type="button" onclick="saveSubData(${item.rowIndex}, 'Ghi_chu', 'note_${item.rowIndex}', 'Đã lưu ghi chú!')">Lưu</button>
                     </div>
                   </div>
 
@@ -283,7 +361,7 @@
                     <h6 class="fw-bold text-danger">👤 Người liên hệ</h6>
                     <div class="input-group input-group-sm">
                       <input type="text" id="contact_${item.rowIndex}" class="form-control" value="${item.Nguoi_lien_he || ''}">
-                      <button class="btn btn-danger" type="button" onclick="saveSubData(${item.rowIndex}, 'Nguoi_lien_he', 'contact_${item.rowIndex}')">Lưu</button>
+                      <button class="btn btn-danger" type="button" onclick="saveSubData(${item.rowIndex}, 'Nguoi_lien_he', 'contact_${item.rowIndex}', 'Đã lưu người liên hệ!')">Lưu</button>
                     </div>
                   </div>
                 </div>
@@ -313,6 +391,54 @@
       return html;
     }
 
+    // --- ĐỒNG BỘ DỮ LIỆU TÙY CHỌN ---
+    async function executeSync() {
+      const targetMonth = document.getElementById("syncMonthSelect").value;
+      const modalEl = document.getElementById('syncModal');
+      const modal = bootstrap.Modal.getInstance(modalEl);
+      modal.hide();
+
+      showToast("Đang xử lý đồng bộ...", "primary");
+
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          body: JSON.stringify({ action: "syncDataFromSheets", targetMonth: targetMonth })
+        });
+        const json = await res.json();
+        showToast(json.message || "Đồng bộ hoàn tất!");
+        loadCustomerData();
+      } catch (err) {
+        showToast("Lỗi đồng bộ dữ liệu!", "danger");
+      }
+    }
+
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast(`Đã copy số HĐ: ${text}`, "success");
+      });
+    }
+
+    function showToast(message, type = "success") {
+      const container = document.getElementById("toast-container");
+      const bgClass = type === "success" ? "bg-success" : (type === "danger" ? "bg-danger" : "bg-primary");
+      const toastId = "toast_" + Date.now();
+      
+      const html = `
+        <div id="${toastId}" class="toast align-items-center text-white ${bgClass} border-0 shadow show mb-2" role="alert">
+          <div class="d-flex">
+            <div class="toast-body fw-bold">${message}</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+          </div>
+        </div>
+      `;
+      container.insertAdjacentHTML('beforeend', html);
+      setTimeout(() => {
+        const el = document.getElementById(toastId);
+        if (el) el.remove();
+      }, 3000);
+    }
+
     function resetFilters() {
       document.getElementById("filterMonth").value = "";
       document.getElementById("searchKeyword").value = "";
@@ -327,23 +453,26 @@
     async function doCheckAo(rowIndex) {
       await updateField(rowIndex, 'Check_Ao', 'Đã Check Áo');
       await updateField(rowIndex, 'Check_GPS', ''); 
-      alert("Đã Check Áo thành công!");
+      showToast("Đã xác nhận Check Áo!", "primary");
       loadCustomerData();
     }
 
     async function doCheckGps(rowIndex) {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(async position => {
-          const lat = position.coords.latitude;
-          const lng = position.coords.longitude;
-          const coordStr = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+          const coordStr = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
           await updateField(rowIndex, 'GPS_Chinh', coordStr);
           await updateField(rowIndex, 'Check_GPS', 'Đã Check GPS');
           await updateField(rowIndex, 'Check_Ao', ''); 
-          alert(`Check GPS thành công: ${coordStr}`);
+          showToast(`Check GPS thành công: ${coordStr}`);
           loadCustomerData();
-        }, () => alert("Không thể lấy vị trí GPS!"));
+        }, () => showToast("Không thể lấy vị trí GPS!", "danger"));
       }
+    }
+
+    async function updateFieldAndNotify(rowIndex, fieldName, value) {
+      await updateField(rowIndex, fieldName, value);
+      showToast("Đã cập nhật trạng thái!");
     }
 
     async function updateField(rowIndex, fieldName, value) {
@@ -351,16 +480,16 @@
       await fetch(API_URL, { method: "POST", body: JSON.stringify(payload) });
     }
 
-    async function saveSubData(rowIndex, fieldName, elementId) {
+    async function saveSubData(rowIndex, fieldName, elementId, successMsg) {
       const val = document.getElementById(elementId).value;
       await updateField(rowIndex, fieldName, val);
-      alert("Lưu thành công!");
+      showToast(successMsg);
     }
 
     async function saveGpsField(rowIndex, key) {
       const val = document.getElementById(`input_${rowIndex}_${key}`).value;
       await updateField(rowIndex, key, val);
-      alert(`Đã lưu ${key} thành công!`);
+      showToast(`Đã lưu ${key}!`);
     }
 
     function getCurrentLocation(rowIndex, key) {
@@ -369,33 +498,13 @@
           const coordStr = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
           document.getElementById(`input_${rowIndex}_${key}`).value = coordStr;
           updateField(rowIndex, key, coordStr);
-          alert(`Đã lấy vị trí: ${coordStr}`);
+          showToast(`Đã lấy vị trí: ${coordStr}`);
         });
       }
     }
-async function syncDataFromSheets() {
-  if (!confirm("Bạn có muốn hệ thống quét các tab tháng và đồng bộ khách hàng sang tab Data không?")) return;
-  
-  const btn = event.target;
-  btn.innerText = "Đang đồng bộ...";
-  btn.disabled = true;
 
-  try {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      body: JSON.stringify({ action: "syncDataFromSheets" })
-    });
-    const json = await res.json();
-    alert(json.message || "Đồng bộ hoàn tất!");
-    loadCustomerData(); // Tải lại dữ liệu lên bảng
-  } catch (err) {
-    alert("Lỗi đồng bộ: " + err);
-  } finally {
-    btn.innerText = "🔄 Đồng bộ dữ liệu tháng";
-    btn.disabled = false;
-  }
-}
-    init();
+    // Tự động kiểm tra phiên đăng nhập khi mở trang
+    window.onload = checkSession;
   </script>
 </body>
 </html>
