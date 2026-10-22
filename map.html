@@ -8,10 +8,8 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     body { background-color: #f4f6f9; font-size: 15px; margin: 0; padding: 10px; }
-    /* Định nghĩa chiều cao cố định rõ ràng để bản đồ hiển thị đầy đủ */
-    #map { height: 82vh; width: 100%; border-radius: 12px; border: 1px solid #ccc; }
+    #map { height: 75vh; width: 100%; border-radius: 12px; border: 2px solid #ccc; background-color: #ddd; }
     .btn, .form-select, .form-control { min-height: 38px; }
-
     .gps-badge-icon { background: transparent; border: none; }
     .gps-marker-num {
       width: 26px; height: 26px; border-radius: 50%;
@@ -38,6 +36,9 @@
       </div>
     </div>
 
+    <!-- KHUNG IN LỖI (HIỂN THỊ TRỰC QUAN NẾU CÓ LỖI XẢY RA) -->
+    <div id="errorBox" class="alert alert-danger d-none py-2 small mb-2" role="alert"></div>
+
     <!-- KHUNG BẢN ĐỒ -->
     <div id="map" class="shadow-sm"></div>
   </div>
@@ -49,60 +50,17 @@
       <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
     </div>
     <div class="offcanvas-body">
-      
       <div class="mb-3">
         <label class="form-label fw-bold small">Kỳ tháng:</label>
         <select id="mapMonth" class="form-select" onchange="filterAndRenderMap()">
           <option value="">-- Tất cả tháng --</option>
         </select>
       </div>
-
       <div class="mb-3">
         <label class="form-label fw-bold small">Tìm kiếm khách hàng:</label>
         <input type="text" id="mapSearch" class="form-control" placeholder="Tên khách, số HĐ..." oninput="filterAndRenderMap()">
       </div>
-
-      <div class="mb-3">
-        <label class="form-label fw-bold small">Trạng thái HĐ:</label>
-        <select id="mapTrangThai" class="form-select" onchange="filterAndRenderMap()">
-          <option value="">Tất cả</option>
-          <option value="Nợ">Nợ</option>
-          <option value="Trả một phần">Trả một phần</option>
-          <option value="Tất toán">Tất toán</option>
-          <option value="Hứa">Hứa</option>
-        </select>
-      </div>
-
-      <div class="mb-3">
-        <label class="form-label fw-bold small">Trạng thái Tìm nhà:</label>
-        <select id="mapTimNha" class="form-select" onchange="filterAndRenderMap()">
-          <option value="">Tất cả</option>
-          <option value="Chưa tìm">Chưa tìm</option>
-          <option value="Đã tới Ấp">Đã tới Ấp</option>
-          <option value="Bỏ địa phương">Bỏ địa phương</option>
-          <option value="Có người biết">Có người biết</option>
-          <option value="Gặp người thân">Gặp người thân</option>
-          <option value="Gặp khách hàng">Gặp khách hàng</option>
-        </select>
-      </div>
-
-      <div class="mb-3">
-        <label class="form-label fw-bold small">Xác minh Check:</label>
-        <select id="mapCheck" class="form-select" onchange="filterAndRenderMap()">
-          <option value="">Tất cả</option>
-          <option value="Đã Check GPS">📍 Đã Check GPS (Thực tế)</option>
-          <option value="Đã Check Áo">🛡️ Đã Check Áo</option>
-        </select>
-      </div>
-
       <button class="btn btn-outline-secondary w-100 mt-3" onclick="resetMapFilters()">🔄 Đặt lại lọc</button>
-      
-      <div class="mt-4 p-2 bg-light rounded text-center small border">
-        <b>Chú thích màu & Số thứ tự:</b><br>
-        <span class="text-success fw-bold">🟢 Xanh lá: Đã Check GPS</span><br>
-        <span class="text-primary fw-bold">🔵 Xanh dương: Chưa check</span><br>
-        <i>Ký hiệu trên icon: <b>C</b> (GPS Chính), số <b>1-5</b> (GPS phụ)</i>
-      </div>
     </div>
   </div>
 
@@ -115,19 +73,33 @@
     let markersGroup = null;
     let allMapData = [];
 
-    // Tự động khởi tạo bản đồ ngay khi mở trang
     window.onload = function() {
-      initMap();
-      loadMapDataAndRender();
+      try {
+        initMap();
+        loadMapDataAndRender();
+      } catch (err) {
+        showError("Lỗi khởi tạo trang: " + err.message);
+      }
     };
 
+    function showError(msg) {
+      const errBox = document.getElementById("errorBox");
+      errBox.classList.remove("d-none");
+      errBox.innerText = "❌ " + msg;
+      console.error(msg);
+    }
+
     function initMap() {
+      if (typeof L === 'undefined') {
+        throw new Error("Thư viện Leaflet.js chưa được tải! Kiểm tra lại kết nối mạng hoặc CDN.");
+      }
+
       if (map !== null) return;
       
-      // Khởi tạo bản đồ với tọa độ mặc định tại Miền Tây / Cần Thơ
+      // Khởi tạo bản đồ tại Cần Thơ / Miền Tây
       map = L.map('map').setView([10.030, 105.770], 10);
       
-      // Thêm lớp bản đồ nền OpenStreetMap cơ sở
+      // Thêm bản đồ nền OpenStreetMap
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '© OpenStreetMap contributors'
@@ -140,14 +112,18 @@
       const btn = document.getElementById("loadMapBtn");
       btn.innerText = "⏳ Đang tải...";
       btn.disabled = true;
+      document.getElementById("errorBox").classList.add("d-none");
 
       try {
         if(map) {
           map.invalidateSize();
         }
 
+        // Gọi lấy danh sách tháng
         const resMonths = await fetch(`${API_URL}?action=getMonths`);
+        if (!resMonths.ok) throw new Error(`HTTP error! status: ${resMonths.status}`);
         const jsonMonths = await resMonths.json();
+        
         const select = document.getElementById("mapMonth");
         select.innerHTML = '<option value="">-- Tất cả tháng --</option>';
         if(jsonMonths.months) {
@@ -156,15 +132,22 @@
           });
         }
 
+        // Gọi lấy dữ liệu khách hàng
         const resData = await fetch(`${API_URL}?action=getData`);
+        if (!resData.ok) throw new Error(`HTTP error! status: ${resData.status}`);
         const jsonData = await resData.json();
-        allMapData = jsonData.data || [];
         
+        if(jsonData.success === false) {
+          throw new Error(jsonData.error || "Lỗi từ Apps Script API");
+        }
+
+        allMapData = jsonData.data || [];
         filterAndRenderMap();
+        
         btn.innerText = "✅ Đã tải xong";
         setTimeout(() => { btn.innerText = "🔄 Tải Dữ Liệu"; btn.disabled = false; }, 2000);
       } catch (err) {
-        console.error("Lỗi tải dữ liệu bản đồ:", err);
+        showError("Không thể tải dữ liệu từ Google Sheets: " + err.message);
         btn.innerText = "❌ Lỗi tải";
         btn.disabled = false;
       }
@@ -177,10 +160,6 @@
 
       const monthVal = document.getElementById("mapMonth").value;
       const keyword = document.getElementById("mapSearch").value.toLowerCase();
-      const fTrangThai = document.getElementById("mapTrangThai").value;
-      const fTimNha = document.getElementById("mapTimNha").value;
-      const fCheck = document.getElementById("mapCheck").value;
-
       const gpsKeys = ['GPS_Chinh', 'GPS_1', 'GPS_2', 'GPS_3', 'GPS_4', 'GPS_5'];
 
       allMapData.forEach(item => {
@@ -189,9 +168,6 @@
           const txt = `${item.Ten_khach_hang || ''} ${item.so_hd || ''}`.toLowerCase();
           if (!txt.includes(keyword)) return;
         }
-        if (fTrangThai && item.Trang_thai_hd !== fTrangThai) return;
-        if (fTimNha && item.Trang_thai_tim_nha !== fTimNha) return;
-        if (fCheck && item.Check_GPS !== fCheck && item.Check_Ao !== fCheck) return;
 
         const isCheckedGps = item.Check_GPS === 'Đã Check GPS';
         const markerBgColor = isCheckedGps ? '#198754' : '#0d6efd';
@@ -239,9 +215,6 @@
     function resetMapFilters() {
       document.getElementById("mapMonth").value = "";
       document.getElementById("mapSearch").value = "";
-      document.getElementById("mapTrangThai").value = "";
-      document.getElementById("mapTimNha").value = "";
-      document.getElementById("mapCheck").value = "";
       filterAndRenderMap();
     }
   </script>
