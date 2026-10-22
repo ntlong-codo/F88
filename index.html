@@ -92,7 +92,7 @@
     </div>
   </div>
 
-  <!-- OFFCANVAS BỘ LỌC -->
+  <!-- OFFCANVAS BỘ LỌC ĐẦY ĐỦ CHO INDEX -->
   <div class="offcanvas offcanvas-end" tabindex="-1" id="filterDrawer">
     <div class="offcanvas-header bg-dark text-white">
       <h5 class="offcanvas-title">⚙️ Bộ Lọc Nâng Cao</h5>
@@ -113,8 +113,41 @@
         </select>
       </div>
       <div class="mb-3">
+        <label class="form-label fw-bold small">Tìm nhà:</label>
+        <select id="filterTimNha" class="form-select" onchange="filterData(); updateFilterCount();">
+          <option value="">Tất cả</option>
+          <option value="Chưa tìm">Chưa tìm</option>
+          <option value="Đã tới Ấp">Đã tới Ấp</option>
+          <option value="Bỏ địa phương">Bỏ địa phương</option>
+          <option value="Có người biết">Có người biết</option>
+          <option value="Gặp người thân">Gặp người thân</option>
+          <option value="Gặp khách hàng">Gặp khách hàng</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-bold small">Độ khó khách hàng:</label>
+        <select id="filterDoKho" class="form-select" onchange="filterData(); updateFilterCount();">
+          <option value="">Tất cả</option>
+          <option value="Chưa biết">Chưa biết</option>
+          <option value="Dễ làm việc">Dễ làm việc</option>
+          <option value="Trung lập">Trung lập</option>
+          <option value="Khó Tính">Khó Tính</option>
+          <option value="Không hợp tác">Không hợp tác</option>
+          <option value="Bạo lực">Bạo lực</option>
+        </select>
+      </div>
+      <div class="mb-3">
         <label class="form-label fw-bold small">🏠 Lọc theo Thường Trú:</label>
-        <input type="text" id="filterThuongTru" class="form-control" placeholder="Nhập tên xã, huyện..." oninput="filterData(); updateFilterCount();">
+        <input type="text" id="filterThuongTru" class="form-control" placeholder="Nhập tên xã, huyện, tỉnh..." oninput="filterData(); updateFilterCount();">
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-bold small">Trạng thái Check:</label>
+        <select id="filterCheck" class="form-select" onchange="filterData(); updateFilterCount();">
+          <option value="">Tất cả</option>
+          <option value="DaCheckGps">Đã Check GPS</option>
+          <option value="DaCheckAo">Đã Check Áo</option>
+          <option value="ChuaCheck">Chưa check</option>
+        </select>
       </div>
       <button class="btn btn-outline-danger w-100 mt-2" onclick="resetFilters()">🔄 Đặt lại bộ lọc</button>
     </div>
@@ -193,19 +226,20 @@
         const gpsMonthSel = document.getElementById("gpsFilterMonth");
         const syncSel = document.getElementById("syncMonthSelect");
         
-        // Tự động tạo định dạng mmyyyy cho tháng hiện tại
         const now = new Date();
         const currentMmyyyy = String(now.getMonth() + 1).padStart(2, '0') + now.getFullYear();
 
         if(json.months) {
           json.months.forEach(m => {
-            if(filterSel) filterSel.innerHTML += `<option value="${m}">Kỳ ${m}</option>`;
-            if(gpsMonthSel) gpsMonthSel.innerHTML += `<option value="${m}">Kỳ ${m}</option>`;
-            if(syncSel) syncSel.innerHTML += `<option value="${m}">Kỳ ${m}</option>`;
+            const lowerM = String(m).toLowerCase();
+            if (lowerM !== 'ap_new' && lowerM !== 'ap_old') {
+              if(filterSel) filterSel.innerHTML += `<option value="${m}">Kỳ ${m}</option>`;
+              if(gpsMonthSel) gpsMonthSel.innerHTML += `<option value="${m}">Kỳ ${m}</option>`;
+              if(syncSel) syncSel.innerHTML += `<option value="${m}">Kỳ ${m}</option>`;
+            }
           });
         }
 
-        // Mặc định chọn tháng hiện tại theo chuẩn mmyyyy nếu có trong danh sách
         if(filterSel) filterSel.value = currentMmyyyy;
         if(gpsMonthSel) gpsMonthSel.value = currentMmyyyy;
 
@@ -255,7 +289,10 @@
       let count = 0;
       if(document.getElementById("filterMonth").value) count++;
       if(document.getElementById("filterTrangThaiHd").value) count++;
+      if(document.getElementById("filterTimNha").value) count++;
+      if(document.getElementById("filterDoKho").value) count++;
       if(document.getElementById("filterThuongTru").value) count++;
+      if(document.getElementById("filterCheck").value) count++;
       document.getElementById("activeFilterCount").innerText = count;
     }
 
@@ -279,7 +316,7 @@
           if (myCurrentCoords) {
             gpsKeys.forEach(k => {
               if (item[k] && String(item[k]).includes(',')) {
-                let p = item[k].split(',');
+                let p = String(item[k]).split(',');
                 let d = calculateDistance(myCurrentCoords.lat, myCurrentCoords.lng, parseFloat(p[0]), parseFloat(p[1]));
                 if (d < minDist) minDist = d;
               }
@@ -293,13 +330,21 @@
         const monthVal = document.getElementById("filterMonth").value;
         const keyword = document.getElementById("searchKeyword").value.toLowerCase();
         const fTrangThai = document.getElementById("filterTrangThaiHd").value;
+        const fTimNha = document.getElementById("filterTimNha").value;
+        const fDoKho = document.getElementById("filterDoKho").value;
         const fThuongTru = document.getElementById("filterThuongTru").value.toLowerCase();
+        const fCheck = document.getElementById("filterCheck").value;
 
         filtered = allRawData.filter(item => {
           if (monthVal && String(item.Thang).trim() !== String(monthVal).trim()) return false;
           if (keyword && !`${item.Ten_khach_hang || ''} ${item.so_hd || ''}`.toLowerCase().includes(keyword)) return false;
           if (fTrangThai && item.Trang_thai_hd !== fTrangThai) return false;
+          if (fTimNha && item.Trang_thai_tim_nha !== fTimNha) return false;
+          if (fDoKho && item.Muc_do_kho !== fDoKho) return false;
           if (fThuongTru && !`${item.WARD_HO_KHAU || ''} ${item.WARD_HO_KHAU_AP_NEW || ''} ${item.WARD_HO_KHAU_AP_OLD || ''}`.toLowerCase().includes(fThuongTru)) return false;
+          if (fCheck === 'DaCheckGps' && item.Check_GPS !== 'Đã Check GPS') return false;
+          if (fCheck === 'DaCheckAo' && item.Check_Ao !== 'Đã Check Áo') return false;
+          if (fCheck === 'ChuaCheck' && (item.Check_GPS === 'Đã Check GPS' || item.Check_Ao === 'Đã Check Áo')) return false;
           return true;
         });
       }
@@ -541,8 +586,15 @@
       setTimeout(() => document.getElementById(id)?.remove(), 2500);
     }
     function resetFilters() {
-      document.getElementById("filterMonth").value = ""; document.getElementById("searchKeyword").value = "";
-      document.getElementById("filterTrangThaiHd").value = ""; document.getElementById("filterThuongTru").value = "";
+      const now = new Date();
+      const currentMmyyyy = String(now.getMonth() + 1).padStart(2, '0') + now.getFullYear();
+      document.getElementById("filterMonth").value = currentMmyyyy; 
+      document.getElementById("searchKeyword").value = "";
+      document.getElementById("filterTrangThaiHd").value = ""; 
+      document.getElementById("filterTimNha").value = "";
+      document.getElementById("filterDoKho").value = "";
+      document.getElementById("filterThuongTru").value = "";
+      document.getElementById("filterCheck").value = "";
       updateFilterCount(); filterData();
     }
     async function updateFieldAndNotify(r, f, v) { await updateField(r, f, v); showToast("Đã cập nhật!"); }
