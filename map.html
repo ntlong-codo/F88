@@ -7,9 +7,8 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    body { background-color: #f4f6f9; font-size: 15px; margin: 0; padding: 0; }
-    /* Định nghĩa chiều cao cố định tuyệt đối cho bản đồ */
-    #map { height: 82vh; width: 100%; border-radius: 12px; }
+    body { background-color: #f4f6f9; font-size: 15px; }
+    #map { height: 78vh; width: 100%; border-radius: 12px; }
     
     #authOverlay {
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
@@ -18,23 +17,12 @@
     }
     .btn, .form-select, .form-control { min-height: 38px; }
 
-    /* CSS tùy chỉnh cho icon chứa số thứ tự trên bản đồ */
-    .gps-badge-icon {
-      background: transparent;
-      border: none;
-    }
+    .gps-badge-icon { background: transparent; border: none; }
     .gps-marker-num {
-      width: 26px;
-      height: 26px;
-      border-radius: 50%;
-      color: white;
-      font-weight: bold;
-      font-size: 11px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-      border: 2px solid white;
+      width: 26px; height: 26px; border-radius: 50%;
+      color: white; font-weight: bold; font-size: 11px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3); border: 2px solid white;
     }
   </style>
 </head>
@@ -53,14 +41,16 @@
 
   <div class="container-fluid p-3 d-none" id="mainContent">
     
+    <!-- THANH ĐIỀU HƯỚNG & NÚT TẢI BẢN ĐỒ -->
     <div class="d-flex justify-content-between align-items-center mb-2 bg-white p-2 rounded shadow-sm">
       <div class="d-flex align-items-center">
         <a href="index.html" class="btn btn-outline-dark btn-sm me-2">⬅️ Danh sách</a>
-        <h5 class="mb-0 fw-bold text-danger">🗺️ Bản Đồ GPS Thực Địa</h5>
+        <h5 class="mb-0 fw-bold text-danger">🗺️ Bản Đồ GPS</h5>
       </div>
-      <div>
+      <div class="d-flex gap-2">
+        <button id="loadMapBtn" class="btn btn-success btn-sm fw-bold" onclick="loadMapDataAndRender()">🔄 Tải Dữ Liệu Bản Đồ</button>
         <button class="btn btn-primary btn-sm fw-bold" type="button" data-bs-toggle="offcanvas" data-bs-target="#mapFilterDrawer">
-          ⚙️ Lọc Bản Đồ
+          ⚙️ Lọc
         </button>
       </div>
     </div>
@@ -123,13 +113,6 @@
       </div>
 
       <button class="btn btn-outline-secondary w-100 mt-3" onclick="resetMapFilters()">🔄 Đặt lại lọc</button>
-      
-      <div class="mt-4 p-2 bg-light rounded text-center small border">
-        <b>Chú thích màu & Số thứ tự:</b><br>
-        <span class="text-success fw-bold">🟢 Xanh lá: Đã Check GPS (Toàn bộ điểm của HĐ)</span><br>
-        <span class="text-primary fw-bold">🔵 Xanh dương: GPS chưa xác minh</span><br>
-        <i>Ký hiệu trên icon: <b>C</b> (GPS Chính), số <b>1-5</b> (GPS phụ)</i>
-      </div>
     </div>
   </div>
 
@@ -152,10 +135,7 @@
     function checkSession() {
       try {
         const rawData = localStorage.getItem(AUTH_KEY);
-        if (!rawData) {
-          showLoginScreen();
-          return;
-        }
+        if (!rawData) { showLoginScreen(); return; }
         const authData = JSON.parse(rawData);
         const now = new Date().getTime();
 
@@ -163,10 +143,9 @@
           document.getElementById("authOverlay").style.display = "none";
           document.getElementById("mainContent").classList.remove("d-none");
           
-          // Đảm bảo DOM đã render xong rồi mới khởi tạo map
-          setTimeout(() => {
-            initMap();
-          }, 100);
+          // Khởi tạo khung bản đồ trống trước, sau đó tự động tải dữ liệu
+          initMapContainer();
+          loadMapDataAndRender();
         } else {
           showLoginScreen();
         }
@@ -183,42 +162,40 @@
     function checkAuth() {
       const inputEl = document.getElementById("passInput");
       const errorDiv = document.getElementById("authError");
-      const password = inputEl.value.trim();
-
-      if (password === AUTH_PASS) {
-        const expiry = new Date().getTime() + ONE_DAY_MS;
-        localStorage.setItem(AUTH_KEY, JSON.stringify({ pass: AUTH_PASS, expiry: expiry }));
+      if (inputEl.value.trim() === AUTH_PASS) {
+        localStorage.setItem(AUTH_KEY, JSON.stringify({ pass: AUTH_PASS, expiry: new Date().getTime() + ONE_DAY_MS }));
         errorDiv.classList.add("d-none");
         checkSession();
       } else {
         errorDiv.classList.remove("d-none");
-        inputEl.value = "";
-        inputEl.focus();
+        inputEl.value = ""; inputEl.focus();
       }
     }
 
-    function initMap() {
-      if (map !== null) {
-        map.invalidateSize();
-        return;
-      }
-
-      // Khởi tạo bản đồ
+    function initMapContainer() {
+      if (map !== null) return;
       map = L.map('map').setView([10.030, 105.770], 10);
-      
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap'
       }).addTo(map);
-
       markersGroup = L.layerGroup().addTo(map);
-      loadMapData();
     }
 
-    async function loadMapData() {
+    // TẢI DỮ LIỆU & VẼ BẢN ĐỒ THỦ CÔNG/TỰ ĐỘNG AN TOÀN
+    async function loadMapDataAndRender() {
+      const btn = document.getElementById("loadMapBtn");
+      btn.innerText = "⏳ Đang tải dữ liệu...";
+      btn.disabled = true;
+
       try {
+        if(map) {
+          map.invalidateSize(); // Ép bản đồ làm mới kích thước tránh lỗi màn hình trắng
+        }
+
         const resMonths = await fetch(`${API_URL}?action=getMonths`);
         const jsonMonths = await resMonths.json();
         const select = document.getElementById("mapMonth");
+        select.innerHTML = '<option value="">-- Tất cả tháng --</option>';
         if(jsonMonths.months) {
           jsonMonths.months.forEach(m => {
             select.innerHTML += `<option value="${m}">Kỳ tháng ${m}</option>`;
@@ -228,17 +205,20 @@
         const resData = await fetch(`${API_URL}?action=getData`);
         const jsonData = await resData.json();
         allMapData = jsonData.data || [];
+        
         filterAndRenderMap();
+        btn.innerText = "✅ Đã tải xong";
+        setTimeout(() => { btn.innerText = "🔄 Tải Dữ Liệu Bản Đồ"; btn.disabled = false; }, 2000);
       } catch (err) {
         console.error("Lỗi tải dữ liệu bản đồ:", err);
+        btn.innerText = "❌ Lỗi tải";
+        btn.disabled = false;
       }
     }
 
     function filterAndRenderMap() {
       if (!markersGroup || !map) return;
       markersGroup.clearLayers();
-
-      // Bắt buộc gọi invalidateSize để Leaflet tự vẽ lại khung nền khi chuyển từ ẩn sang hiện
       map.invalidateSize();
 
       const monthVal = document.getElementById("mapMonth").value;
@@ -259,7 +239,6 @@
         if (fTimNha && item.Trang_thai_tim_nha !== fTimNha) return;
         if (fCheck && item.Check_GPS !== fCheck && item.Check_Ao !== fCheck) return;
 
-        // Nếu khách hàng đã check GPS -> Đổi toàn bộ các điểm GPS của hợp đồng này thành màu xanh lá
         const isCheckedGps = item.Check_GPS === 'Đã Check GPS';
         const markerBgColor = isCheckedGps ? '#198754' : '#0d6efd';
 
@@ -270,11 +249,9 @@
             const lng = parseFloat(parts[1].trim());
 
             if (!isNaN(lat) && !isNaN(lng)) {
-              // Gán số thứ tự cho icon: GPS_Chinh hiển thị chữ 'C', GPS 1-5 hiển thị số 1-5
               const labelNum = key === 'GPS_Chinh' ? 'C' : String(idx);
               const labelName = key === 'GPS_Chinh' ? 'GPS Chính' : `GPS ${idx}`;
 
-              // Tạo icon tùy chỉnh hiển thị số thứ tự
               const customIcon = L.divIcon({
                 className: 'gps-badge-icon',
                 html: `<div class="gps-marker-num" style="background-color: ${markerBgColor};">${labelNum}</div>`,
