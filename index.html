@@ -2,151 +2,145 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>Quản Lý Thu Hồi Nợ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quản Lý Thu Hồi Nợ - Mobile</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <style>
-    .nested-row { background-color: #f8f9fa !important; }
-    .sub-section { border-left: 3px solid #0d6efd; padding-left: 12px; margin-bottom: 10px; }
-    .row-check-ao { background-color: #f3e8ff !important; } 
-    .row-check-gps { background-color: #e8f5e9 !important; } 
-    #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 1055; }
+    body { background-color: #f4f6f9; font-size: 15px; }
+    .customer-card { background: #fff; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); margin-bottom: 12px; padding: 14px; border-left: 5px solid #0d6efd; }
+    .row-check-ao { border-left-color: #6f42c1 !important; background-color: #fbf7ff !important; } 
+    .row-check-gps { border-left-color: #198754 !important; background-color: #f2f9f4 !important; } 
+    .sub-section { border-left: 3px solid #0d6efd; padding-left: 10px; margin-top: 10px; }
+    #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 1055; left: 20px; }
+    #toast-container .toast { width: 100%; max-width: 100%; }
     
-    /* Giao diện khóa mật khẩu Overlay */
     #authOverlay {
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
       background: rgba(0, 0, 0, 0.85); z-index: 9999;
       display: flex; align-items: center; justify-content: center;
     }
+    /* Tối ưu kích thước nút bấm trên mobile */
+    .btn, .form-select, .form-control { min-height: 42px; }
   </style>
 </head>
-<body class="bg-light">
+<body>
 
   <!-- FRAME KHÓA MẬT KHẨU -->
   <div id="authOverlay">
     <div class="card p-4 shadow-lg text-center" style="max-width: 380px; width: 90%;">
       <h4 class="mb-3">🔐 BẢO MẬT HỆ THỐNG</h4>
-      <p class="text-muted small">Vui lòng nhập mật khẩu để tiếp tục (Lưu đăng nhập 24h)</p>
+      <p class="text-muted small">Nhập mật khẩu để tiếp tục (Lưu đăng nhập 24h)</p>
       <input type="password" id="passInput" class="form-control mb-3 text-center fs-5" placeholder="Nhập mật khẩu..." onkeyup="if(event.key==='Enter') checkAuth()">
-      <button class="btn btn-primary w-100 fw-bold" onclick="checkAuth()">XÁC NHẬN DĂNG NHẬP</button>
+      <button class="btn btn-primary w-100 fw-bold" onclick="checkAuth()">XÁC NHẬN ĐĂNG NHẬP</button>
       <div id="authError" class="text-danger small mt-2 d-none">Mật khẩu không chính xác!</div>
     </div>
   </div>
 
   <!-- NỘI DUNG CHÍNH WEBSITE -->
-  <div class="container-fluid my-4 px-4 d-none" id="mainContent">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h2>📋 Quản Lý Khách Hàng & Thu Hồi Nợ</h2>
+  <div class="container py-3 px-2 d-none" id="mainContent">
+    
+    <!-- THANH HEADER THAO TÁC NHANH -->
+    <div class="d-flex justify-content-between align-items-center mb-3 bg-white p-2 rounded shadow-sm">
+      <h5 class="mb-0 fw-bold text-primary">📋 Thu Hồi Nợ</h5>
       <div>
-        <button class="btn btn-warning me-2 fw-bold" data-bs-toggle="modal" data-bs-target="#syncModal">🔄 Đồng bộ dữ liệu</button>
-        <a href="map.html" class="btn btn-danger me-2">🗺️ Xem Bản Đồ GPS</a>
-        <button class="btn btn-outline-secondary btn-sm" onclick="logout()">🔒 Đăng xuất</button>
+        <button class="btn btn-warning btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#syncModal">🔄 Đồng bộ</button>
+        <a href="map.html" class="btn btn-danger btn-sm fw-bold">🗺️ Bản đồ</a>
+        <button class="btn btn-outline-secondary btn-sm" onclick="logout()">🔒</button>
       </div>
     </div>
 
-    <!-- CÔNG CỤ TÌM KIẾM & BỘ LỌC -->
-    <div class="card p-3 mb-3 shadow-sm">
-      <div class="row g-2 align-items-center">
-        <div class="col-md-2">
-          <label class="form-label fw-bold small mb-1">Kỳ tháng:</label>
-          <select id="filterMonth" class="form-select form-select-sm" onchange="filterData()">
-            <option value="">-- Tất cả tháng --</option>
-          </select>
-        </div>
-        <div class="col-md-3">
-          <label class="form-label fw-bold small mb-1">Tìm kiếm:</label>
-          <input type="text" id="searchKeyword" class="form-control form-control-sm" placeholder="Tên, số HĐ, SĐT..." oninput="filterData()">
-        </div>
-        <div class="col-md-2">
-          <label class="form-label fw-bold small mb-1">Trạng thái HĐ:</label>
-          <select id="filterTrangThaiHd" class="form-select form-select-sm" onchange="filterData()">
-            <option value="">Tất cả</option>
-            <option value="Nợ">Nợ</option>
-            <option value="Trả một phần">Trả một phần</option>
-            <option value="Tất toán">Tất toán</option>
-            <option value="Hứa">Hứa</option>
-          </select>
-        </div>
-        <div class="col-md-2">
-          <label class="form-label fw-bold small mb-1">Tìm nhà:</label>
-          <select id="filterTimNha" class="form-select form-select-sm" onchange="filterData()">
-            <option value="">Tất cả</option>
-            <option value="Chưa tìm">Chưa tìm</option>
-            <option value="Đã tới Ấp">Đã tới Ấp</option>
-            <option value="Bỏ địa phương">Bỏ địa phương</option>
-            <option value="Có người biết">Có người biết</option>
-            <option value="Gặp người thân">Gặp người thân</option>
-            <option value="Gặp khách hàng">Gặp khách hàng</option>
-          </select>
-        </div>
-        <div class="col-md-2">
-          <label class="form-label fw-bold small mb-1">Độ khó:</label>
-          <select id="filterDoKho" class="form-select form-select-sm" onchange="filterData()">
-            <option value="">Tất cả</option>
-            <option value="Dễ">Dễ</option>
-            <option value="Trung bình">Trung bình</option>
-            <option value="Khó">Khó</option>
-            <option value="Rất khó">Rất khó</option>
-          </select>
-        </div>
-        <div class="col-md-2">
-          <label class="form-label fw-bold small mb-1">Trạng thái Check:</label>
-          <select id="filterCheck" class="form-select form-select-sm" onchange="filterData()">
-            <option value="">Tất cả</option>
-            <option value="DaCheckGps">Đã Check GPS</option>
-            <option value="DaCheckAo">Đã Check Áo</option>
-            <option value="ChuaCheck">Chưa check</option>
-          </select>
-        </div>
-        <div class="col-md-2">
-          <label class="form-label fw-bold small mb-1">Tọa độ GPS:</label>
-          <select id="filterHasGps" class="form-select form-select-sm" onchange="filterData()">
-            <option value="">Tất cả</option>
-            <option value="HasGps">Có GPS</option>
-            <option value="NoGps">Chưa có GPS</option>
-          </select>
-        </div>
-        <div class="col-md-2 d-flex align-items-end">
-          <button class="btn btn-outline-secondary btn-sm w-100 mt-3" onclick="resetFilters()">🔄 Đặt lại lọc</button>
-        </div>
-      </div>
+    <!-- THANH TÌM KIẾM VÀ NÚT MỞ BỘ LỌC -->
+    <div class="input-group mb-3 shadow-sm">
+      <input type="text" id="searchKeyword" class="form-control" placeholder="🔍 Tìm tên, số HĐ, SĐT..." oninput="filterData()">
+      <button class="btn btn-outline-primary" type="button" data-bs-toggle="offcanvas" data-bs-target="#filterDrawer">
+        ⚙️ Lọc (<span id="activeFilterCount">0</span>)
+      </button>
     </div>
 
-    <!-- BẢNG DỮ LIỆU -->
-    <div class="card shadow-sm">
-      <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-          <thead class="table-dark">
-            <tr>
-              <th style="width: 4%;">#</th>
-              <th style="width: 20%;">HĐ & Tên Khách Hàng</th>
-              <th style="width: 13%;">Trạng thái HĐ</th>
-              <th style="width: 14%;">Tìm nhà</th>
-              <th style="width: 12%;">Độ khó</th>
-              <th style="width: 11%;">Check</th>
-              <th style="width: 10%;">GPS</th>
-              <th style="width: 16%;">Chi tiết</th>
-            </tr>
-          </thead>
-          <tbody id="customerTableBody">
-            <tr><td colspan="8" class="text-center">Đang tải dữ liệu...</td></tr>
-          </tbody>
-        </table>
-      </div>
+    <!-- KHU VỰC HIỂN THỊ DANH SÁCH DẠNG THẺ (CARD STACK CHO MOBILE) -->
+    <div id="customerCardContainer">
+      <div class="text-center py-5 text-muted">Đang tải dữ liệu khách hàng...</div>
     </div>
   </div>
 
-  <!-- FORM MODAL ĐỒNG BỘ DỮ LIỆU TÙY CHỌN -->
+  <!-- OFFCANVAS DRAWER (BỘ LỌC THU GỌN CHO MOBILE) -->
+  <div class="offcanvas offcanvas-end" tabindex="-1" id="filterDrawer">
+    <div class="offcanvas-header bg-dark text-white">
+      <h5 class="offcanvas-title">⚙️ Bộ Lọc Nâng Cao</h5>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body">
+      <div class="mb-3">
+        <label class="form-label fw-bold small">Kỳ tháng:</label>
+        <select id="filterMonth" class="form-select" onchange="filterData(); updateFilterCount();">
+          <option value="">-- Tất cả tháng --</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-bold small">Trạng thái HĐ:</label>
+        <select id="filterTrangThaiHd" class="form-select" onchange="filterData(); updateFilterCount();">
+          <option value="">Tất cả</option>
+          <option value="Nợ">Nợ</option>
+          <option value="Trả một phần">Trả một phần</option>
+          <option value="Tất toán">Tất toán</option>
+          <option value="Hứa">Hứa</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-bold small">Tìm nhà:</label>
+        <select id="filterTimNha" class="form-select" onchange="filterData(); updateFilterCount();">
+          <option value="">Tất cả</option>
+          <option value="Chưa tìm">Chưa tìm</option>
+          <option value="Đã tới Ấp">Đã tới Ấp</option>
+          <option value="Bỏ địa phương">Bỏ địa phương</option>
+          <option value="Có người biết">Có người biết</option>
+          <option value="Gặp người thân">Gặp người thân</option>
+          <option value="Gặp khách hàng">Gặp khách hàng</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-bold small">Độ khó:</label>
+        <select id="filterDoKho" class="form-select" onchange="filterData(); updateFilterCount();">
+          <option value="">Tất cả</option>
+          <option value="Dễ">Dễ</option>
+          <option value="Trung bình">Trung bình</option>
+          <option value="Khó">Khó</option>
+          <option value="Rất khó">Rất khó</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-bold small">Trạng thái Check:</label>
+        <select id="filterCheck" class="form-select" onchange="filterData(); updateFilterCount();">
+          <option value="">Tất cả</option>
+          <option value="DaCheckGps">Đã Check GPS</option>
+          <option value="DaCheckAo">Đã Check Áo</option>
+          <option value="ChuaCheck">Chưa check</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-bold small">Tọa độ GPS:</label>
+        <select id="filterHasGps" class="form-select" onchange="filterData(); updateFilterCount();">
+          <option value="">Tất cả</option>
+          <option value="HasGps">Có GPS</option>
+          <option value="NoGps">Chưa có GPS</option>
+        </select>
+      </div>
+      <button class="btn btn-outline-danger w-100 mt-2" onclick="resetFilters()">🔄 Đặt lại bộ lọc</button>
+    </div>
+  </div>
+
+  <!-- MODAL ĐỒNG BỘ DỮ LIỆU -->
   <div class="modal fade" id="syncModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title fw-bold">🔄 Đồng Bộ Dữ Liệu Từ Sheet</h5>
+          <h5 class="modal-title fw-bold">🔄 Đồng Bộ Dữ Liệu</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
-          <p class="small text-muted mb-3">Hệ thống sẽ cập nhật thông tin khách hàng vào tab Data. Dữ liệu GPS và Ghi chú cũ sẽ được giữ nguyên an toàn.</p>
+          <p class="small text-muted mb-3">Cập nhật thông tin từ Sheet tháng, giữ nguyên dữ liệu thực địa cũ.</p>
           <div class="mb-3">
-            <label class="form-label fw-bold">Chọn kỳ tháng cần đồng bộ:</label>
+            <label class="form-label fw-bold">Chọn kỳ tháng:</label>
             <select id="syncMonthSelect" class="form-select">
               <option value="">⚡ Đồng bộ TẤT CẢ các tháng</option>
             </select>
@@ -154,7 +148,7 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-          <button type="button" class="btn btn-primary" onclick="executeSync()">Thực hiện đồng bộ</button>
+          <button type="button" class="btn btn-primary" onclick="executeSync()">Thực hiện</button>
         </div>
       </div>
     </div>
@@ -171,11 +165,9 @@
 
     let allRawData = [];
 
-    // --- KIỂM TRA MẬT KHẨU & ĐĂNG NHẬP 1 NGÀY ---
     function checkSession() {
       const authData = JSON.parse(localStorage.getItem(AUTH_KEY) || "{}");
       const now = new Date().getTime();
-
       if (authData.pass === AUTH_PASS && authData.expiry && now < authData.expiry) {
         document.getElementById("authOverlay").classList.add("d-none");
         document.getElementById("mainContent").classList.remove("d-none");
@@ -203,17 +195,14 @@
       location.reload();
     }
 
-    // --- KHỞI TẠO VÀ TẢI DỮ LIỆU ---
     async function init() {
       const res = await fetch(`${API_URL}?action=getMonths`);
       const json = await res.json();
-      
       const filterSel = document.getElementById("filterMonth");
       const syncSel = document.getElementById("syncMonthSelect");
-      
       json.months.forEach(m => {
         filterSel.innerHTML += `<option value="${m}">Kỳ ${m}</option>`;
-        syncSel.innerHTML += `<option value="${m}">Chỉ đồng bộ kỳ ${m}</option>`;
+        syncSel.innerHTML += `<option value="${m}">Kỳ ${m}</option>`;
       });
       loadCustomerData();
     }
@@ -223,6 +212,17 @@
       const json = await res.json();
       allRawData = json.data || [];
       filterData();
+    }
+
+    function updateFilterCount() {
+      let count = 0;
+      if(document.getElementById("filterMonth").value) count++;
+      if(document.getElementById("filterTrangThaiHd").value) count++;
+      if(document.getElementById("filterTimNha").value) count++;
+      if(document.getElementById("filterDoKho").value) count++;
+      if(document.getElementById("filterCheck").value) count++;
+      if(document.getElementById("filterHasGps").value) count++;
+      document.getElementById("activeFilterCount").innerText = count;
     }
 
     function filterData() {
@@ -237,7 +237,7 @@
       let filtered = allRawData.filter(item => {
         if (monthVal && String(item.Thang).trim() !== String(monthVal).trim()) return false;
         if (keyword) {
-          const textSearch = `${item.Ten_khach_hang || ''} ${item.so_hd || ''} ${item.sdt || ''}`.toLowerCase();
+          const textSearch = `${item.Ten_khach_hang || ''} ${item.so_hd \vert{}\vert{} ''}${item.sdt || ''}`.toLowerCase();
           if (!textSearch.includes(keyword)) return false;
         }
         if (fTrangThai && item.Trang_thai_hd !== fTrangThai) return false;
@@ -255,151 +255,162 @@
         return true;
       });
 
-      renderTable(filtered);
+      renderCards(filtered);
     }
 
-    function renderTable(data) {
-      const tbody = document.getElementById("customerTableBody");
+    // RENDER DẠNG THẺ (MOBILE CARD STACK THAY VÌ BẢNG NGANG)
+    function renderCards(data) {
+      const container = document.getElementById("customerCardContainer");
       if(data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="text-center">Không tìm thấy khách hàng phù hợp.</td></tr>`;
+        container.innerHTML = `<div class="text-center py-5 text-muted bg-white rounded shadow-sm">Không tìm thấy khách hàng phù hợp.</div>`;
         return;
       }
 
-      tbody.innerHTML = data.map((item, idx) => {
-        const rowId = `collapse_${idx}`;
-        let trStyleClass = "";
+      container.innerHTML = data.map((item, idx) => {
+        let cardStyleClass = "";
         let checkBadge = '<span class="badge bg-secondary">Chưa check</span>';
         if (item.Check_GPS === 'Đã Check GPS') {
-          trStyleClass = "row-check-gps";
+          cardStyleClass = "row-check-gps";
           checkBadge = '<span class="badge bg-success">📍 Đã Check GPS</span>';
         } else if (item.Check_Ao === 'Đã Check Áo') {
-          trStyleClass = "row-check-ao";
-          checkBadge = '<span class="badge" style="background-color: #6f42c1; color: white;">🛡️ Đã Check Áo</span>';
+          cardStyleClass = "row-check-ao";
+          checkBadge = '<span class="badge" style="background-color: #6f42c1; color: white;">🛡️ Check Áo</span>';
         }
 
         const gpsFields = ['GPS_Chinh', 'GPS_1', 'GPS_2', 'GPS_3', 'GPS_4', 'GPS_5'];
         const countGps = gpsFields.filter(k => item[k] && String(item[k]).includes(',')).length;
-        const gpsBadge = countGps > 0 ? `<span class="badge bg-primary">${countGps} tọa độ</span>` : `<span class="badge bg-light text-dark">0 GPS</span>`;
+        const gpsBadge = countGps > 0 ? `<span class="badge bg-primary">${countGps} GPS</span>` : `<span class="badge bg-light text-dark">0 GPS</span>`;
+        const collapseId = `collapseCard_${idx}`;
 
         return `
-          <tr class="${trStyleClass}">
-            <td>${idx + 1}</td>
-            <td>
-              <strong class="text-primary">${item.Ten_khach_hang || ''}</strong><br>
-              <small class="text-muted">HĐ: <code>${item.so_hd || ''}</code></small>
-              <button class="btn btn-sm btn-link p-0 ms-1" onclick="copyToClipboard('${item.so_hd}')" title="Copy số hợp đồng">📋</button><br>
-              <small class="text-secondary">SĐT: ${item.sdt || '---'}</small>
-            </td>
-            <td>
-              <select class="form-select form-select-sm" onchange="updateFieldAndNotify(${item.rowIndex}, 'Trang_thai_hd', this.value)">
-                <option value="Nợ" ${item.Trang_thai_hd === 'Nợ' ? 'selected' : ''}>🔴 Nợ</option>
-                <option value="Trả một phần" ${item.Trang_thai_hd === 'Trả một phần' ? 'selected' : ''}>🟡 Trả một phần</option>
-                <option value="Tất toán" ${item.Trang_thai_hd === 'Tất toán' ? 'selected' : ''}>🟢 Tất toán</option>
-                <option value="Hứa" ${item.Trang_thai_hd === 'Hứa' ? 'selected' : ''}>🔵 Hứa</option>
-              </select>
-            </td>
-            <td>
-              <select class="form-select form-select-sm" onchange="updateFieldAndNotify(${item.rowIndex}, 'Trang_thai_tim_nha', this.value)">
-                <option value="Chưa tìm" ${item.Trang_thai_tim_nha === 'Chưa tìm' ? 'selected' : ''}>⚪ Chưa tìm</option>
-                <option value="Đã tới Ấp" ${item.Trang_thai_tim_nha === 'Đã tới Ấp' ? 'selected' : ''}>🟡 Đã tới Ấp</option>
-                <option value="Bỏ địa phương" ${item.Trang_thai_tim_nha === 'Bỏ địa phương' ? 'selected' : ''}>🔴 Bỏ địa phương</option>
-                <option value="Có người biết" ${item.Trang_thai_tim_nha === 'Có người biết' ? 'selected' : ''}>🔵 Có người biết</option>
-                <option value="Gặp người thân" ${item.Trang_thai_tim_nha === 'Gặp người thân' ? 'selected' : ''}>🟣 Gặp người thân</option>
-                <option value="Gặp khách hàng" ${item.Trang_thai_tim_nha === 'Gặp khách hàng' ? 'selected' : ''}>🟢 Gặp khách hàng</option>
-              </select>
-            </td>
-            <td>
-              <select class="form-select form-select-sm" onchange="updateFieldAndNotify(${item.rowIndex}, 'Muc_do_kho', this.value)">
-                <option value="Dễ" ${item.Muc_do_kho === 'Dễ' ? 'selected' : ''}>🟢 Dễ</option>
-                <option value="Trung bình" ${item.Muc_do_kho === 'Trung bình' ? 'selected' : ''}>🟡 Trung bình</option>
-                <option value="Khó" ${item.Muc_do_kho === 'Khó' ? 'selected' : ''}>🟠 Khó</option>
-                <option value="Rất khó" ${item.Muc_do_kho === 'Rất khó' ? 'selected' : ''}>🔴 Rất khó</option>
-              </select>
-            </td>
-            <td>${checkBadge}</td>
-            <td>${gpsBadge}</td>
-            <td>
-              <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#${rowId}">
-                🔽 Chi tiết
+          <div class="customer-card ${cardStyleClass}">
+            <!-- Dòng 1: Tên & Số HĐ -->
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <div>
+                <h6 class="fw-bold text-primary mb-1">${item.Ten_khach_hang || 'Chưa có tên'}</h6>
+                <small class="text-muted">HĐ: <code>${item.so_hd || ''}</code></small>
+                <button class="btn btn-sm btn-link p-0 ms-1" onclick="copyToClipboard('${item.so_hd}')" title="Copy số hợp đồng">📋</button>
+              </div>
+              <div>${checkBadge}</div>
+            </div>
+
+            <!-- Dòng 2: SĐT & Trạng thái nhanh -->
+            <div class="row g-2 mb-2">
+              <div class="col-12 text-secondary small">📞 SĐT: <b>${item.sdt \vert{}\vert{} '---'}</b> \vert{} Kỳ: <b>${item.Thang || '---'}</b></div>
+              
+              <div class="col-6">
+                <label class="small text-muted fw-bold mb-0">Trạng thái HĐ:</label>
+                <select class="form-select form-select-sm" onchange="updateFieldAndNotify(${item.rowIndex}, 'Trang_thai_hd', this.value)">
+                  <option value="Nợ" ${item.Trang_thai_hd === 'Nợ' ? 'selected' : ''}>🔴 Nợ</option>
+                  <option value="Trả một phần" ${item.Trang_thai_hd === 'Trả một phần' ? 'selected' : ''}>🟡 Trả một phần</option>
+                  <option value="Tất toán" ${item.Trang_thai_hd === 'Tất toán' ? 'selected' : ''}>🟢 Tất toán</option>
+                  <option value="Hứa" ${item.Trang_thai_hd === 'Hứa' ? 'selected' : ''}>🔵 Hứa</option>
+                </select>
+              </div>
+
+              <div class="col-6">
+                <label class="small text-muted fw-bold mb-0">Tìm nhà:</label>
+                <select class="form-select form-select-sm" onchange="updateFieldAndNotify(${item.rowIndex}, 'Trang_thai_tim_nha', this.value)">
+                  <option value="Chưa tìm" ${item.Trang_thai_tim_nha === 'Chưa tìm' ? 'selected' : ''}>⚪ Chưa tìm</option>
+                  <option value="Đã tới Ấp" ${item.Trang_thai_tim_nha === 'Đã tới Ấp' ? 'selected' : ''}>🟡 Đã tới Ấp</option>
+                  <option value="Bỏ địa phương" ${item.Trang_thai_tim_nha === 'Bỏ địa phương' ? 'selected' : ''}>🔴 Bỏ địa phương</option>
+                  <option value="Có người biết" ${item.Trang_thai_tim_nha === 'Có người biết' ? 'selected' : ''}>🔵 Có người biết</option>
+                  <option value="Gặp người thân" ${item.Trang_thai_tim_nha === 'Gặp người thân' ? 'selected' : ''}>🟣 Gặp người thân</option>
+                  <option value="Gặp khách hàng" ${item.Trang_thai_tim_nha === 'Gặp khách hàng' ? 'selected' : ''}>🟢 Gặp khách hàng</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Nút mở rộng xem chi tiết -->
+            <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
+              <div>${gpsBadge}</div>
+              <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
+                🔽 Chi tiết & GPS
               </button>
-            </td>
-          </tr>
+            </div>
 
-          <tr class="nested-row">
-            <td colspan="8" class="p-0">
-              <div class="collapse p-3" id="${rowId}">
-                <div class="row g-3">
-                  <div class="col-md-12 sub-section bg-white p-2 rounded shadow-sm">
-                    <h6 class="fw-bold text-dark mb-2">⚡ Thao tác xác thực nhanh:</h6>
-                    <button class="btn btn-sm text-white me-2" style="background-color: #6f42c1;" onclick="doCheckAo(${item.rowIndex})">🛡️ Check Áo</button>
-                    <button class="btn btn-sm btn-success" onclick="doCheckGps(${item.rowIndex})">📍 Check GPS Nhà Khách</button>
-                  </div>
-
-                  <div class="col-md-12 sub-section">
-                    <h6 class="fw-bold text-secondary">📍 Địa chỉ</h6>
-                    <div class="row text-muted small">
-                      <div class="col-md-4"><b>Thường trú:</b> ${item.WARD_HO_KHAU || '---'}</div>
-                      <div class="col-md-4"><b>Tạm trú:</b> ${item.WARD_TAM_TRU || '---'}</div>
-                      <div class="col-md-4"><b>Shop:</b> ${item.SHOPNAME || '---'}</div>
-                    </div>
-                  </div>
-
-                  <div class="col-md-12 sub-section">
-                    <h6 class="fw-bold text-primary">🌐 Hệ thống GPS (1 tới 5)</h6>
-                    <div class="row g-2">${renderGpsInputs(item)}</div>
-                  </div>
-
-                  <div class="col-md-6 sub-section">
-                    <h6 class="fw-bold text-success">📝 Ghi chú</h6>
-                    <div class="input-group input-group-sm">
-                      <input type="text" id="note_${item.rowIndex}" class="form-control" value="${item.Ghi_chu || ''}">
-                      <button class="btn btn-success" type="button" onclick="saveSubData(${item.rowIndex}, 'Ghi_chu', 'note_${item.rowIndex}', 'Đã lưu ghi chú!')">Lưu</button>
-                    </div>
-                  </div>
-
-                  <div class="col-md-6 sub-section">
-                    <h6 class="fw-bold text-danger">👤 Người liên hệ</h6>
-                    <div class="input-group input-group-sm">
-                      <input type="text" id="contact_${item.rowIndex}" class="form-control" value="${item.Nguoi_lien_he || ''}">
-                      <button class="btn btn-danger" type="button" onclick="saveSubData(${item.rowIndex}, 'Nguoi_lien_he', 'contact_${item.rowIndex}', 'Đã lưu người liên hệ!')">Lưu</button>
-                    </div>
+            <!-- PHẦN NỘI DUNG XỔ XUỐNG (COLLAPSE CHI TIẾT) -->
+            <div class="collapse mt-3" id="${collapseId}">
+              <div class="p-2 bg-light rounded border">
+                
+                <!-- Thao tác check nhanh -->
+                <div class="mb-3">
+                  <div class="small fw-bold mb-1">⚡ Xác thực thực địa:</div>
+                  <div class="d-flex gap-2">
+                    <button class="btn btn-sm text-white flex-fill" style="background-color: #6f42c1;" onclick="doCheckAo(${item.rowIndex})">🛡️ Check Áo</button>
+                    <button class="btn btn-sm btn-success flex-fill" onclick="doCheckGps(${item.rowIndex})">📍 Check GPS</button>
                   </div>
                 </div>
+
+                <!-- Địa chỉ -->
+                <div class="sub-section mb-3 text-secondary small">
+                  <b>📍 Địa chỉ:</b><br>
+                  - Thường trú: ${item.WARD_HO_KHAU || '---'}<br>
+                  - Tạm trú: ${item.WARD_TAM_TRU || '---'}<br>
+                  - Shop: ${item.SHOPNAME || '---'}
+                </div>
+
+                <!-- Phân loại độ khó -->
+                <div class="mb-3">
+                  <label class="small fw-bold">Độ khó khách hàng:</label>
+                  <select class="form-select form-select-sm" onchange="updateFieldAndNotify(${item.rowIndex}, 'Muc_do_kho', this.value)">
+                    <option value="Dễ" ${item.Muc_do_kho === 'Dễ' ? 'selected' : ''}>🟢 Dễ</option>
+                    <option value="Trung bình" ${item.Muc_do_kho === 'Trung bình' ? 'selected' : ''}>🟡 Trung bình</option>
+                    <option value="Khó" ${item.Muc_do_kho === 'Khó' ? 'selected' : ''}>🟠 Khó</option>
+                    <option value="Rất khó" ${item.Muc_do_kho === 'Rất khó' ? 'selected' : ''}>🔴 Rất khó</option>
+                  </select>
+                </div>
+
+                <!-- Quản lý 5 GPS -->
+                <div class="sub-section mb-3">
+                  <div class="small fw-bold text-primary mb-1">🌐 Quản lý Tọa độ GPS:</div>
+                  ${renderGpsInputsMobile(item)}
+                </div>
+
+                <!-- Ghi chú & Liên hệ -->
+                <div class="mb-2">
+                  <label class="small fw-bold text-success">📝 Ghi chú:</label>
+                  <div class="input-group input-group-sm mb-2">
+                    <input type="text" id="note_${item.rowIndex}" class="form-control" value="${item.Ghi_chu || ''}">
+                    <button class="btn btn-success" type="button" onclick="saveSubData(${item.rowIndex}, 'Ghi_chu', 'note_${item.rowIndex}', 'Đã lưu ghi chú!')">Lưu</button>
+                  </div>
+
+                  <label class="small fw-bold text-danger">👤 Người liên hệ:</label>
+                  <div class="input-group input-group-sm">
+                    <input type="text" id="contact_${item.rowIndex}" class="form-control" value="${item.Nguoi_lien_he || ''}">
+                    <button class="btn btn-danger" type="button" onclick="saveSubData(${item.rowIndex}, 'Nguoi_lien_he', 'contact_${item.rowIndex}', 'Đã lưu liên hệ!')">Lưu</button>
+                  </div>
+                </div>
+
               </div>
-            </td>
-          </tr>
+            </div>
+
+          </div>
         `;
       }).join('');
     }
 
-    function renderGpsInputs(item) {
+    function renderGpsInputsMobile(item) {
       let html = '';
       const gpsFields = ['GPS_Chinh', 'GPS_1', 'GPS_2', 'GPS_3', 'GPS_4', 'GPS_5'];
-      const labels = ['GPS Chính', 'GPS 1', 'GPS 2', 'GPS 3', 'GPS 4', 'GPS 5'];
+      const labels = ['Chính', 'GPS 1', 'GPS 2', 'GPS 3', 'GPS 4', 'GPS 5'];
       gpsFields.forEach((key, idx) => {
         html += `
-          <div class="col-md-4">
-            <div class="input-group input-group-sm mb-1">
-              <span class="input-group-text" style="font-size:11px; width:75px;">${labels[idx]}</span>
-              <input type="text" id="input_${item.rowIndex}_${key}" class="form-control" value="${item[key] || ''}" placeholder="Lat, Lng">
-              <button class="btn btn-outline-secondary" type="button" onclick="getCurrentLocation(${item.rowIndex}, '${key}')">📍</button>
-              <button class="btn btn-primary" type="button" onclick="saveGpsField(${item.rowIndex}, '${key}')">Lưu</button>
-            </div>
+          <div class="input-group input-group-sm mb-1">
+            <span class="input-group-text" style="font-size:11px; width:65px;">${labels[idx]}</span>
+            <input type="text" id="input_${item.rowIndex}_${key}" class="form-control" value="${item[key] || ''}" placeholder="Lat, Lng">
+            <button class="btn btn-outline-secondary" type="button" onclick="getCurrentLocation(${item.rowIndex}, '${key}')">📍</button>
+            <button class="btn btn-primary" type="button" onclick="saveGpsField(${item.rowIndex}, '${key}')">Lưu</button>
           </div>
         `;
       });
       return html;
     }
 
-    // --- ĐỒNG BỘ DỮ LIỆU TÙY CHỌN ---
     async function executeSync() {
       const targetMonth = document.getElementById("syncMonthSelect").value;
-      const modalEl = document.getElementById('syncModal');
-      const modal = bootstrap.Modal.getInstance(modalEl);
-      modal.hide();
-
-      showToast("Đang xử lý đồng bộ...", "primary");
-
+      bootstrap.Modal.getInstance(document.getElementById('syncModal')).hide();
+      showToast("Đang đồng bộ dữ liệu...", "primary");
       try {
         const res = await fetch(API_URL, {
           method: "POST",
@@ -409,34 +420,24 @@
         showToast(json.message || "Đồng bộ hoàn tất!");
         loadCustomerData();
       } catch (err) {
-        showToast("Lỗi đồng bộ dữ liệu!", "danger");
+        showToast("Lỗi đồng bộ!", "danger");
       }
     }
 
     function copyToClipboard(text) {
-      navigator.clipboard.writeText(text).then(() => {
-        showToast(`Đã copy số HĐ: ${text}`, "success");
-      });
+      navigator.clipboard.writeText(text).then(() => showToast(`Đã copy số HĐ: ${text}`, "success"));
     }
 
     function showToast(message, type = "success") {
       const container = document.getElementById("toast-container");
       const bgClass = type === "success" ? "bg-success" : (type === "danger" ? "bg-danger" : "bg-primary");
       const toastId = "toast_" + Date.now();
-      
-      const html = `
-        <div id="${toastId}" class="toast align-items-center text-white ${bgClass} border-0 shadow show mb-2" role="alert">
-          <div class="d-flex">
-            <div class="toast-body fw-bold">${message}</div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-          </div>
+      container.insertAdjacentHTML('beforeend`, `
+        <div id="${toastId}" class="toast align-items-center text-white ${bgClass} border-0 shadow show mb-2">
+          <div class="d-flex"><div class="toast-body fw-bold">${message}</div></div>
         </div>
-      `;
-      container.insertAdjacentHTML('beforeend', html);
-      setTimeout(() => {
-        const el = document.getElementById(toastId);
-        if (el) el.remove();
-      }, 3000);
+      `);
+      setTimeout(() => { const el = document.getElementById(toastId); if (el) el.remove(); }, 2500);
     }
 
     function resetFilters() {
@@ -447,13 +448,14 @@
       document.getElementById("filterDoKho").value = "";
       document.getElementById("filterCheck").value = "";
       document.getElementById("filterHasGps").value = "";
+      updateFilterCount();
       filterData();
     }
 
     async function doCheckAo(rowIndex) {
       await updateField(rowIndex, 'Check_Ao', 'Đã Check Áo');
       await updateField(rowIndex, 'Check_GPS', ''); 
-      showToast("Đã xác nhận Check Áo!", "primary");
+      showToast("Đã Check Áo thành công!", "primary");
       loadCustomerData();
     }
 
@@ -503,7 +505,6 @@
       }
     }
 
-    // Tự động kiểm tra phiên đăng nhập khi mở trang
     window.onload = checkSession;
   </script>
 </body>
