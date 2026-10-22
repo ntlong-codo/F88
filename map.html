@@ -7,8 +7,9 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    body { background-color: #f4f6f9; font-size: 15px; }
-    #map { height: calc(100vh - 80px); width: 100%; border-radius: 12px; }
+    body { background-color: #f4f6f9; font-size: 15px; margin: 0; padding: 0; }
+    /* Sửa lỗi màn hình trắng: Đặt chiều cao cố định bằng pixel cho mobile */
+    #map { height: 78vh; width: 100%; border-radius: 12px; }
     
     #authOverlay {
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
@@ -180,6 +181,9 @@
 
       markersGroup = L.layerGroup().addTo(map);
       loadMapData();
+      
+      // Fix lỗi Leaflet bị xám/trắng khi container ẩn lúc đầu qua overlay
+      setTimeout(() => { map.invalidateSize(); }, 300);
     }
 
     async function loadMapData() {
