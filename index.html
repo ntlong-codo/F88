@@ -84,6 +84,16 @@
             <option value="">⚡ Tất cả</option>
           </select>
         </div>
+        <div class="col-12 mt-1">
+          <label class="small fw-bold text-danger mb-1">📍 Loại GPS:</label>
+          <select id="gpsFilterType" class="form-select form-select-sm fw-bold text-primary" onchange="filterData()">
+            <option value="all" selected>⚡ Tất cả loại GPS</option>
+            <option value="GPS_Chinh">GPS chính</option>
+            <option value="GPS_CHECK_1_5">GPS check (1 tới 5)</option>
+            <option value="GPS_AP_NEW">Ấp New</option>
+            <option value="GPS_AP_OLD">Ấp Old</option>
+          </select>
+        </div>
       </div>
       <div class="text-center mt-2"><small class="text-muted" id="gpsStatusText">Đang định vị...</small></div>
     </div>
@@ -113,6 +123,16 @@
           <option value="DaCheckGps">🟢 Đã Check GPS</option>
           <option value="DaCheckAo">🟣 Đã Check Áo</option>
           <option value="">⚡ Tất cả</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-bold small">📍 Loại GPS:</label>
+        <select id="filterGpsType" class="form-select fw-bold text-primary" onchange="filterData(); updateFilterCount();">
+          <option value="all" selected>⚡ Tất cả loại GPS</option>
+          <option value="GPS_Chinh">GPS chính</option>
+          <option value="GPS_CHECK_1_5">GPS check (1 tới 5)</option>
+          <option value="GPS_AP_NEW">Ấp New</option>
+          <option value="GPS_AP_OLD">Ấp Old</option>
         </select>
       </div>
       <div class="mb-3">
@@ -306,6 +326,14 @@
       return null;
     }
 
+    function getKeysForGpsType(gpsType) {
+      if (gpsType === 'GPS_Chinh') return ['GPS_Chinh'];
+      if (gpsType === 'GPS_CHECK_1_5') return ['GPS_1', 'GPS_2', 'GPS_3', 'GPS_4', 'GPS_5'];
+      if (gpsType === 'GPS_AP_NEW') return ['GPS_AP_NEW'];
+      if (gpsType === 'GPS_AP_OLD') return ['GPS_AP_OLD'];
+      return ['GPS_Chinh', 'GPS_1', 'GPS_2', 'GPS_3', 'GPS_4', 'GPS_5', 'GPS_AP_NEW', 'GPS_AP_OLD'];
+    }
+
     function updateCounters(data) {
       let totalCheck = 0; let monthC = 0;
       const now = new Date();
@@ -329,6 +357,7 @@
       if(document.getElementById("filterMonth").value) count++;
       if(document.getElementById("filterThanhToan").value !== "chua_thanh_toan") count++;
       if(document.getElementById("filterCheck").value !== "ChuaCheck") count++;
+      if(document.getElementById("filterGpsType").value !== "all") count++;
       if(document.getElementById("filterTrangThaiHd").value) count++;
       if(document.getElementById("filterTimNha").value) count++;
       if(document.getElementById("filterDoKho").value) count++;
@@ -338,13 +367,14 @@
 
     function filterData() {
       let filtered = [];
-      const gpsKeys = ['GPS_Chinh', 'GPS_1', 'GPS_2', 'GPS_3', 'GPS_4', 'GPS_5', 'GPS_AP_NEW', 'GPS_AP_OLD'];
       const fThanhToan = document.getElementById("filterThanhToan").value;
 
       if (isGpsFilterActive) {
         const monthVal = document.getElementById("gpsFilterMonth").value;
         const checkState = document.getElementById("gpsFilterCheckState").value;
+        const gpsType = document.getElementById("gpsFilterType").value;
         const keyword = document.getElementById("searchKeyword").value.toLowerCase();
+        const targetKeys = getKeysForGpsType(gpsType);
 
         filtered = allRawData.map(item => {
           if (monthVal && String(item.Thang).trim() !== String(monthVal).trim()) return null;
@@ -360,16 +390,18 @@
           if (fThanhToan === 'da_thanh_toan_tren_500k' && paidAmount < 500000) return null;
 
           let minDist = Infinity;
+          let hasMatchingGps = false;
           if (myCurrentCoords) {
-            gpsKeys.forEach(k => {
+            targetKeys.forEach(k => {
               let coord = parseGpsCoord(item[k]);
               if (coord) {
+                hasMatchingGps = true;
                 let d = calculateDistance(myCurrentCoords.lat, myCurrentCoords.lng, coord.lat, coord.lng);
                 if (d < minDist) minDist = d;
               }
             });
           }
-          if (minDist === Infinity) return null;
+          if (!hasMatchingGps || minDist === Infinity) return null;
           return { ...item, _nearestDist: minDist };
         }).filter(Boolean);
         filtered.sort((a, b) => a._nearestDist - b._nearestDist);
@@ -381,6 +413,8 @@
         const fDoKho = document.getElementById("filterDoKho").value;
         const fThuongTru = document.getElementById("filterThuongTru").value.toLowerCase();
         const fCheck = document.getElementById("filterCheck").value;
+        const gpsType = document.getElementById("filterGpsType").value;
+        const targetKeys = getKeysForGpsType(gpsType);
 
         filtered = allRawData.filter(item => {
           if (monthVal && String(item.Thang).trim() !== String(monthVal).trim()) return false;
@@ -394,6 +428,11 @@
           if (fCheck === 'DaCheckGps' && item.Check_GPS !== 'Đã Check GPS') return false;
           if (fCheck === 'DaCheckAo' && item.Check_Ao !== 'Đã Check Áo') return false;
           if (fCheck === 'ChuaCheck' && isChecked) return false;
+
+          if (gpsType !== 'all') {
+            let hasKey = targetKeys.some(k => parseGpsCoord(item[k]));
+            if (!hasKey) return false;
+          }
 
           if (fTrangThai && item.Trang_thai_hd !== fTrangThai) return false;
           if (fTimNha && item.Trang_thai_tim_nha !== fTimNha) return false;
@@ -692,6 +731,7 @@
       document.getElementById("filterMonth").value = currentMmyyyy; 
       document.getElementById("filterThanhToan").value = "chua_thanh_toan";
       document.getElementById("filterCheck").value = "ChuaCheck";
+      document.getElementById("filterGpsType").value = "all";
       document.getElementById("searchKeyword").value = "";
       document.getElementById("filterTrangThaiHd").value = ""; 
       document.getElementById("filterTimNha").value = "";
@@ -718,3 +758,4 @@
   </script>
 </body>
 </html>
+

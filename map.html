@@ -87,6 +87,24 @@
         <select id="mapMonth" class="form-select" onchange="filterAndRenderMap()"><option value="">-- Tất cả tháng --</option></select>
       </div>
       <div class="mb-3">
+        <label class="form-label fw-bold small">Trạng Thái Check:</label>
+        <select id="mapCheckState" class="form-select fw-bold text-danger" onchange="filterAndRenderMap()">
+          <option value="chua_check" selected>🔴 Chưa check (Mặc định)</option>
+          <option value="da_check">🟢 Đã check</option>
+          <option value="tat_ca">⚡ Tất cả</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-bold small">📍 Loại GPS:</label>
+        <select id="mapGpsType" class="form-select fw-bold text-primary" onchange="filterAndRenderMap()">
+          <option value="all" selected>⚡ Tất cả loại GPS</option>
+          <option value="GPS_Chinh">GPS chính</option>
+          <option value="GPS_CHECK_1_5">GPS check (1 tới 5)</option>
+          <option value="GPS_AP_NEW">Ấp New</option>
+          <option value="GPS_AP_OLD">Ấp Old</option>
+        </select>
+      </div>
+      <div class="mb-3">
         <label class="form-label fw-bold small">Trạng Thái Thanh Toán:</label>
         <select id="mapThanhToan" class="form-select" onchange="filterAndRenderMap()">
           <option value="chua_thanh_toan" selected>Chưa thanh toán (Dưới 500k)</option>
@@ -187,6 +205,14 @@
       return null;
     }
 
+    function getKeysForGpsType(gpsType) {
+      if (gpsType === 'GPS_Chinh') return ['GPS_Chinh'];
+      if (gpsType === 'GPS_CHECK_1_5') return ['GPS_1', 'GPS_2', 'GPS_3', 'GPS_4', 'GPS_5'];
+      if (gpsType === 'GPS_AP_NEW') return ['GPS_AP_NEW'];
+      if (gpsType === 'GPS_AP_OLD') return ['GPS_AP_OLD'];
+      return ['GPS_Chinh', 'GPS_1', 'GPS_2', 'GPS_3', 'GPS_4', 'GPS_5', 'GPS_AP_NEW', 'GPS_AP_OLD'];
+    }
+
     async function loadMapDataAndRender() {
       const btn = document.getElementById("loadMapBtn");
       btn.innerText = "⏳ Đang tải...";
@@ -232,12 +258,14 @@
       markerRegistry = {};
 
       const monthVal = document.getElementById("mapMonth").value;
+      const fCheckState = document.getElementById("mapCheckState").value;
+      const fGpsType = document.getElementById("mapGpsType").value;
       const fThanhToan = document.getElementById("mapThanhToan").value;
       const keyword = document.getElementById("mapSearch").value.toLowerCase();
       const fTrangThai = document.getElementById("mapTrangThai").value;
       const fTimNha = document.getElementById("mapTimNha").value;
 
-      const gpsKeys = ['GPS_Chinh', 'GPS_1', 'GPS_2', 'GPS_3', 'GPS_4', 'GPS_5', 'GPS_AP_NEW', 'GPS_AP_OLD'];
+      const targetGpsKeys = getKeysForGpsType(fGpsType);
       const gpsLabels = { 
         'GPS_Chinh': 'GPS Chính', 'GPS_1': 'GPS 1', 'GPS_2': 'GPS 2', 
         'GPS_3': 'GPS 3', 'GPS_4': 'GPS 4', 'GPS_5': 'GPS 5', 
@@ -249,6 +277,11 @@
 
       allMapData.forEach(item => {
         if (monthVal && String(item.Thang).trim() !== String(monthVal).trim()) return;
+
+        // Trạng thái check
+        const isChecked = (item.Check_GPS === 'Đã Check GPS' || item.Check_Ao === 'Đã Check Áo' || (Number(item.So_lan_check) || 0) > 0);
+        if (fCheckState === 'chua_check' && isChecked) return;
+        if (fCheckState === 'da_check' && !isChecked) return;
 
         // Lọc theo điều kiện thanh toán
         const paidAmount = Number(item.So_tien_thanh_toan) || 0;
@@ -262,7 +295,7 @@
         let minDistance = Infinity;
         let hasValidGps = false;
 
-        gpsKeys.forEach(key => {
+        targetGpsKeys.forEach(key => {
           const coord = parseGpsCoord(item[key]);
           if (coord) {
             hasValidGps = true;
@@ -273,20 +306,19 @@
           }
         });
 
-        if (hasValidGps) {
-          filteredMapData.push({ ...item, _nearestDist: minDistance });
-        }
+        if (!hasValidGps) return;
+        filteredMapData.push({ ...item, _nearestDist: minDistance });
 
         const isPaid = paidAmount > 0;
         const opacity = isPaid ? 0.35 : 0.9;
         const color = item.Check_GPS === 'Đã Check GPS' ? '#198754' : '#0d6efd';
 
-        gpsKeys.forEach((key, idx) => {
+        targetGpsKeys.forEach((key, idx) => {
           const coord = parseGpsCoord(item[key]);
           if (coord) {
             totalGpsCount++;
             let distHtml = myCoords ? `<br><b>📍 Khoảng cách:</b> <span class="text-danger fw-bold">${calculateDistance(myCoords.lat, myCoords.lng, coord.lat, coord.lng)} km</span>` : '';
-            let labelText = key.includes('AP') ? (key.includes('NEW') ? 'New' : 'Old') : (key === 'GPS_Chinh' ? 'C' : idx);
+            let labelText = key.includes('AP') ? (key.includes('NEW') ? 'New' : 'Old') : (key === 'GPS_Chinh' ? 'C' : key.replace('GPS_', ''));
 
             let marker = L.marker([coord.lat, coord.lng], {
               icon: L.divIcon({ className: 'gps-badge-icon', html: `<div class="gps-marker-num" style="background-color: ${color}; opacity: ${opacity};">${labelText}</div>`, iconSize: [26,26], iconAnchor: [13,13] })
@@ -331,7 +363,8 @@
         return;
       }
 
-      const gpsKeys = ['GPS_Chinh', 'GPS_1', 'GPS_2', 'GPS_3', 'GPS_4', 'GPS_5', 'GPS_AP_NEW', 'GPS_AP_OLD'];
+      const fGpsType = document.getElementById("mapGpsType").value;
+      const targetGpsKeys = getKeysForGpsType(fGpsType);
       const gpsLabels = { 
         'GPS_Chinh': '📍 GPS Chính', 'GPS_1': '📍 GPS 1', 'GPS_2': '📍 GPS 2', 
         'GPS_3': '📍 GPS 3', 'GPS_4': '📍 GPS 4', 'GPS_5': '📍 GPS 5', 
@@ -340,7 +373,7 @@
 
       container.innerHTML = filteredMapData.map(item => {
         let treeHtml = '';
-        gpsKeys.forEach(key => {
+        targetGpsKeys.forEach(key => {
           const coord = parseGpsCoord(item[key]);
           if (coord) {
             treeHtml += `
@@ -364,7 +397,7 @@
             <hr class="my-2">
             <div class="small fw-bold text-dark mb-1">🌲 Danh Sách Tọa Độ GPS (${item.So_tien_thanh_toan ? Number(item.So_tien_thanh_toan).toLocaleString() + ' VNĐ' : 'Chưa TT'}):</div>
             <div class="ps-2 border-start border-3 border-primary">
-              ${treeHtml || '<i class="text-muted small">Khách chưa có tọa độ GPS nào.</i>'}
+              ${treeHtml || '<i class="text-muted small">Khách chưa có tọa độ GPS loại này.</i>'}
             </div>
           </div>
         `;
@@ -385,6 +418,8 @@
       const now = new Date();
       const currentMmyyyy = String(now.getMonth() + 1).padStart(2, '0') + now.getFullYear();
       document.getElementById("mapMonth").value = currentMmyyyy; 
+      document.getElementById("mapCheckState").value = "chua_check";
+      document.getElementById("mapGpsType").value = "all";
       document.getElementById("mapThanhToan").value = "chua_thanh_toan";
       document.getElementById("mapSearch").value = ""; 
       document.getElementById("mapTrangThai").value = "";
@@ -394,3 +429,4 @@
   </script>
 </body>
 </html>
+
