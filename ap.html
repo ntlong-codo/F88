@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quản Lý Tọa Độ GPS Theo Tab Ấp</title>
+  <title>Quản Lý Tọa Độ GPS Theo Tab Ấp & Đồng Bộ</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
@@ -20,13 +20,14 @@
 <body>
 
   <div class="container py-3 px-2">
-    <!-- THANH ĐIỀU HƯỚNG -->
+    <!-- THANH ĐIỀU HƯỚNG & NÚT TRUNG TÂM ĐỒNG BỘ -->
     <div class="d-flex justify-content-between align-items-center mb-3 bg-white p-2 rounded shadow-sm flex-wrap gap-2">
       <div class="d-flex align-items-center">
         <a href="index.html" class="btn btn-outline-dark btn-sm me-2">⬅️ Danh sách</a>
-        <h5 class="mb-0 fw-bold text-primary">🏡 Quản Lý GPS Theo Tab Ấp</h5>
+        <h5 class="mb-0 fw-bold text-primary">🏡 Quản Lý Ấp & Đồng Bộ</h5>
       </div>
-      <div class="d-flex gap-1">
+      <div class="d-flex gap-1 flex-wrap">
+        <button class="btn btn-warning btn-sm fw-bold text-dark" data-bs-toggle="modal" data-bs-target="#syncModal">🔄 Trung Tâm Đồng Bộ</button>
         <a href="map.html" class="btn btn-danger btn-sm fw-bold">🗺️ Bản đồ khách</a>
         <button class="btn btn-success btn-sm fw-bold" onclick="loadApData()">🔄 Tải Lại</button>
       </div>
@@ -67,6 +68,50 @@
     </div>
   </div>
 
+  <!-- MODAL TRUNG TÂM ĐỒNG BỘ (ĐÃ CHUYỂN SANG AP.HTML & THÊM TÙY CHỌN GHI ĐÈ GPS) -->
+  <div class="modal fade" id="syncModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-warning text-dark">
+          <h5 class="modal-title fw-bold">🔄 Trung Tâm Đồng Bộ Dữ Liệu</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label fw-bold small">Chọn kỳ tháng (Áp dụng cho đồng bộ khách hàng & địa chỉ):</label>
+            <select id="syncMonthSelect" class="form-select">
+              <option value="">⚡ Tất cả các tháng</option>
+            </select>
+          </div>
+
+          <!-- CHECKBOX TÙY CHỌN GHI ĐÈ GPS KHI GÁN NGƯỢC -->
+          <div class="mb-3 p-2 bg-light rounded border">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="overwriteGpsCheckbox">
+              <label class="form-check-label fw-bold small text-danger" for="overwriteGpsCheckbox">
+                ⚡ Gán đè dữ liệu GPS mới (Uncheck thì giữ lại GPS khách đã có)
+              </label>
+            </div>
+          </div>
+
+          <hr>
+          <div class="d-grid gap-2">
+            <button class="btn btn-primary fw-bold btn-sm py-2" onclick="executeSyncCustomers()">
+              📥 Đồng bộ Khách Hàng (Theo Kỳ / Tất Cả)
+            </button>
+            <button class="btn btn-warning fw-bold btn-sm py-2 text-dark" onclick="executeSyncAddressOnly()">
+              🏡 Đồng Bộ Địa Chỉ & Phân Loại Ấp
+            </button>
+            <button class="btn btn-success fw-bold btn-sm py-2" onclick="executeAssignGps()">
+              📍 Gán Ngược GPS Từ Tab Ấp Vào Khách
+            </button>
+          </div>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Đóng</button></div>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL CHỌN GPS TRÊN BẢN ĐỒ HOẶC NHẬP TAY -->
   <div class="modal fade" id="gpsPickerModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -94,7 +139,6 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    // Link API Google Apps Script chuẩn của bạn
     const API_URL = "https://script.google.com/macros/s/AKfycbyE18UD0fm_YdzPATilQVU_0POGSJJ9xd3pkTz37092nkZNtjqvqL2r7UHIuYkwzNle/exec"; 
 
     let allApData = { ap_new: [], ap_old: [] };
@@ -105,7 +149,24 @@
 
     window.onload = function() {
       loadApData();
+      initSyncMonths();
     };
+
+    async function initSyncMonths() {
+      try {
+        const res = await fetch(`${API_URL}?action=getMonths`);
+        const json = await res.json();
+        const syncSel = document.getElementById("syncMonthSelect");
+        if(json.months && syncSel) {
+          json.months.forEach(m => {
+            const lowerM = String(m).toLowerCase();
+            if (lowerM !== 'ap_new' && lowerM !== 'ap_old') {
+              syncSel.innerHTML += `<option value="${m}">Kỳ ${m}</option>`;
+            }
+          });
+        }
+      } catch(err) { console.error(err); }
+    }
 
     async function loadApData() {
       showToast("Đang tải dữ liệu từ các tab Ấp...", "primary");
@@ -139,13 +200,10 @@
       let filtered = rawList.filter(item => {
         const hasGps = item.gps && item.gps.includes(',');
         if (!hasGps) noGpsCount++;
-
         if (onlyNoGps && hasGps) return false;
 
-        // Ghép chuỗi để tìm kiếm toàn bộ địa danh
         const fullStr = `${item.ap || ''} ${item.xaphuong || ''} ${item.quanhuyen || ''} ${item.tinhtp || ''}`.toLowerCase();
         if (keyword && !fullStr.includes(keyword)) return false;
-
         return true;
       });
 
@@ -161,7 +219,7 @@
         const hasGps = item.gps && item.gps.includes(',');
         const cardClass = hasGps ? 'has-gps' : 'no-gps';
         const gpsBadge = hasGps ? `<span class="badge bg-success">Đã có GPS</span>` : `<span class="badge bg-danger">Chưa có GPS</span>`;
-        
+
         let addressDisplay = '';
         if (tabName === 'ap_new') {
           addressDisplay = `<b>🏡 Ấp:</b> ${item.ap} | <b>Xã:</b> ${item.xaphuong} | <b>Tỉnh:</b> ${item.tinhtp}`;
@@ -192,11 +250,46 @@
       }).join('');
     }
 
+    // --- CÁC HÀM ĐỒNG BỘ DỮ LIỆU ---
+    async function executeSyncCustomers() {
+      const targetMonth = document.getElementById("syncMonthSelect").value;
+      showToast("Đang đồng bộ thông tin khách hàng & kỳ cước...", "primary");
+      const res = await fetch(API_URL, { 
+        method: "POST", 
+        body: JSON.stringify({ action: "syncDataFromSheets", targetMonth: targetMonth }) 
+      });
+      const json = await res.json();
+      showToast(json.message); 
+    }
+
+    async function executeSyncAddressOnly() {
+      const targetMonth = document.getElementById("syncMonthSelect").value;
+      showToast("Đang quét địa chỉ và phân loại vào tab Ấp...", "primary");
+      const res = await fetch(API_URL, { 
+        method: "POST", 
+        body: JSON.stringify({ action: "syncAddressToApTabs", targetMonth: targetMonth }) 
+      });
+      const json = await res.json();
+      showToast(json.message);
+      loadApData();
+    }
+
+    async function executeAssignGps() {
+      const overwrite = document.getElementById("overwriteGpsCheckbox").checked;
+      showToast("Đang gán ngược GPS từ tab Ấp vào khách...", "primary");
+      const res = await fetch(API_URL, { 
+        method: "POST", 
+        body: JSON.stringify({ action: "assignGpsFromApTabs", overwrite: overwrite }) 
+      });
+      const json = await res.json();
+      showToast(json.message); 
+    }
+
     // --- MODAL MAP PICKER ---
     function openGpsModal(tabName, rowIndex, apName, xaName, currentGps) {
       currentEditingRow = rowIndex;
       currentEditingTab = tabName;
-      
+
       document.getElementById("modalTitle").innerText = `📍 Cập Nhật GPS: ${apName} (${xaName})`;
       document.getElementById("modalAddressInfo").innerText = `Tab: ${tabName} | Dòng: #${rowIndex} | Ấp: ${apName}`;
       document.getElementById("modalGpsInput").value = currentGps;
@@ -204,33 +297,22 @@
       const myModal = new bootstrap.Modal(document.getElementById('gpsPickerModal'));
       myModal.show();
 
-      // Khởi tạo bản đồ chọn tọa độ sau khi modal hiển thị hoàn tất
-      setTimeout(() => {
-        initMapPicker(currentGps);
-      }, 300);
+      setTimeout(() => { initMapPicker(currentGps); }, 300);
     }
 
     function initMapPicker(gpsStr) {
-      let initialLat = 10.030;
-      let initialLng = 105.770;
-      let zoomLevel = 13;
-
+      let initialLat = 10.030; let initialLng = 105.770; let zoomLevel = 13;
       if (gpsStr && gpsStr.includes(',')) {
         let p = gpsStr.split(',').map(s => parseFloat(s.trim()));
-        if (!isNaN(p[0]) && !isNaN(p[1])) {
-          initialLat = p[0];
-          initialLng = p[1];
-          zoomLevel = 16;
-        }
+        if (!isNaN(p[0]) && !isNaN(p[1])) { initialLat = p[0]; initialLng = p[1]; zoomLevel = 16; }
       }
 
       if (!mapPickerObj) {
         mapPickerObj = L.map('mapPicker').setView([initialLat, initialLng], zoomLevel);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapPickerObj);
-        
+
         mapPickerObj.on('click', function(e) {
-          let lat = e.latlng.lat.toFixed(6);
-          let lng = e.latlng.lng.toFixed(6);
+          let lat = e.latlng.lat.toFixed(6); let lng = e.latlng.lng.toFixed(6);
           document.getElementById("modalGpsInput").value = `${lat}, ${lng}`;
           setPickerMarker(lat, lng);
         });
@@ -262,27 +344,18 @@
     }
 
     function getCurrentLocationMobile() {
-      if (!navigator.geolocation) {
-        alert("Trình duyệt không hỗ trợ định vị!");
-        return;
-      }
+      if (!navigator.geolocation) { alert("Trình duyệt không hỗ trợ định vị!"); return; }
       navigator.geolocation.getCurrentPosition(pos => {
-        let lat = pos.coords.latitude.toFixed(6);
-        let lng = pos.coords.longitude.toFixed(6);
+        let lat = pos.coords.latitude.toFixed(6); let lng = pos.coords.longitude.toFixed(6);
         document.getElementById("modalGpsInput").value = `${lat}, ${lng}`;
         setPickerMarker(lat, lng);
         showToast("Đã lấy vị trí hiện tại!");
-      }, () => {
-        alert("Không thể lấy vị trí hiện tại. Vui lòng cấp quyền GPS.");
-      }, { enableHighAccuracy: true });
+      }, () => { alert("Không thể lấy vị trí hiện tại. Vui lòng cấp quyền GPS."); }, { enableHighAccuracy: true });
     }
 
     async function saveGpsFromModal() {
       const gpsVal = document.getElementById("modalGpsInput").value.trim();
-      if (!gpsVal) {
-        alert("Vui lòng nhập hoặc chọn tọa độ GPS!");
-        return;
-      }
+      if (!gpsVal) { alert("Vui lòng nhập hoặc chọn tọa độ GPS!"); return; }
 
       showToast("Đang lưu tọa độ...", "primary");
       try {
@@ -298,20 +371,15 @@
         const json = await res.json();
         if (json.success) {
           showToast("Đã lưu tọa độ thành công!");
-          // Cập nhật lại mảng local
           let list = allApData[currentEditingTab];
           let item = list.find(d => d.rowIndex == currentEditingRow);
           if (item) item.gps = gpsVal;
-
           renderApList();
           bootstrap.Modal.getInstance(document.getElementById('gpsPickerModal')).hide();
         } else {
           showToast("Lỗi khi lưu: " + json.error, "danger");
         }
-      } catch (err) {
-        console.error(err);
-        showToast("Lỗi kết nối server!", "danger");
-      }
+      } catch (err) { console.error(err); showToast("Lỗi kết nối server!", "danger"); }
     }
 
     function showToast(msg, type = "success") {
