@@ -3,413 +3,120 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bản Đồ GPS & Danh Sách Gần Nhất - Thu Hồi Nợ</title>
+  <title>Bản Đồ GPS - Thu Hồi Nợ</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     body { background-color: #f4f6f9; font-size: 14px; margin: 0; padding: 5px; height: 100vh; overflow: hidden; }
-    .main-wrapper { display: flex; height: 93vh; gap: 8px; }
-    
-    .sidebar-panel { width: 440px; background: #fff; border-radius: 12px; border: 1px solid #ccc; display: flex; flex-direction: column; padding: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+    .main-wrapper { display: flex; height: 92vh; gap: 8px; }
+    .sidebar-panel { width: 400px; background: #fff; border-radius: 12px; border: 1px solid #ccc; display: flex; flex-direction: column; padding: 10px; }
     .customer-item-card { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 10px; margin-bottom: 8px; }
-    .gps-tree-item { cursor: pointer; padding: 4px 8px; margin: 2px 0; background: #e9ecef; border-radius: 4px; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
-    .gps-tree-item:hover { background: #0d6efd; color: white; }
-
-    .map-panel { flex-grow: 1; height: 100%; border-radius: 12px; border: 1px solid #ccc; background-color: #e5e3df; position: relative; }
+    .map-panel { flex-grow: 1; height: 100%; border-radius: 12px; }
     #map { height: 100%; width: 100%; border-radius: 12px; }
-
-    .btn, .form-select, .form-control { min-height: 36px; font-size: 14px; }
-    .gps-badge-icon { background: transparent; border: none; }
-    .gps-marker-num {
-      width: 26px; height: 26px; border-radius: 50%; color: white; font-weight: bold; font-size: 11px;
-      display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.3); border: 2px solid white;
-    }
-    .my-location-marker { background-color: #dc3545; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
-    
-    @media (max-width: 992px) {
-      .main-wrapper { flex-direction: column; height: auto; overflow-y: auto; }
-      body { height: auto; overflow: auto; }
-      .sidebar-panel { width: 100%; max-height: 50vh; overflow-y: auto; }
-      .map-panel { height: 50vh; min-height: 400px; }
-    }
+    .gps-marker-num { width: 26px; height: 26px; border-radius: 50%; color: white; font-weight: bold; font-size: 11px; display: flex; align-items: center; justify-content: center; }
+    .my-location-marker { background-color: #dc3545; border: 3px solid white; border-radius: 50%; }
   </style>
 </head>
 <body>
 
   <div class="container-fluid p-1">
-    <div class="d-flex justify-content-between align-items-center mb-2 bg-white p-2 rounded shadow-sm flex-wrap gap-2">
+    <div class="d-flex justify-content-between align-items-center mb-2 bg-white p-2 rounded shadow-sm">
       <div class="d-flex align-items-center">
         <a href="index.html" class="btn btn-outline-dark btn-sm me-2">⬅️ Danh sách</a>
-        <h5 class="mb-0 fw-bold text-danger">🗺️ Bản Đồ & Định Vị Gần Nhất</h5>
+        <h5 class="mb-0 fw-bold text-danger">🗺️ Bản Đồ GPS</h5>
       </div>
-      <div class="bg-light px-3 py-1 rounded border text-secondary fw-bold small">
-        📊 Tổng khách: <span id="statCustomers" class="text-primary">0</span> | 📌 Tổng điểm GPS: <span id="statGpsPoints" class="text-success">0</span>
-      </div>
-      <div class="d-flex gap-1 flex-wrap">
-        <button class="btn btn-danger btn-sm fw-bold" onclick="locateMyPosition()">📍 Định Vị Lại</button>
-        <button id="loadMapBtn" class="btn btn-success btn-sm fw-bold" onclick="loadMapDataAndRender()">🔄 Tải Dữ Liệu</button>
-        <button class="btn btn-primary btn-sm fw-bold" type="button" data-bs-toggle="offcanvas" data-bs-target="#mapFilterDrawer">⚙️ Lọc</button>
+      <div class="d-flex gap-1">
+        <select id="mapMonth" class="form-select form-select-sm" onchange="loadMapData()"></select>
       </div>
     </div>
 
     <div class="main-wrapper">
       <div class="sidebar-panel">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <h6 class="fw-bold text-primary mb-0">📋 Danh Sách Khách (Gần nhất trước)</h6>
-          <button class="btn btn-outline-secondary btn-sm" onclick="toggleAllCustomerFocus(false)">Hiển thị tất cả</button>
-        </div>
-        <div id="sidebarCustomerList" style="flex-grow: 1; overflow-y: auto; padding-right: 4px;">
-          <div class="text-center text-muted py-4">Đang tải dữ liệu...</div>
-        </div>
+        <h6 class="fw-bold text-primary mb-2">📋 Khách hàng</h6>
+        <div id="sidebarCustomerList" style="overflow-y: auto; flex-grow: 1;"></div>
       </div>
-
       <div class="map-panel shadow-sm">
         <div id="map"></div>
       </div>
     </div>
   </div>
 
-  <!-- OFFCANVAS BỘ LỌC BẢN ĐỒ -->
-  <div class="offcanvas offcanvas-end" tabindex="-1" id="mapFilterDrawer">
-    <div class="offcanvas-header bg-danger text-white">
-      <h5 class="offcanvas-title fw-bold">⚙️ Bộ Lọc Bản Đồ</h5>
-      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
-    </div>
-    <div class="offcanvas-body">
-      <div class="mb-3">
-        <label class="form-label fw-bold small">Kỳ tháng:</label>
-        <select id="mapMonth" class="form-select" onchange="filterAndRenderMap()"><option value="">-- Tất cả tháng --</option></select>
-      </div>
-      <div class="mb-3">
-        <label class="form-label fw-bold small">Trạng Thái Check:</label>
-        <select id="mapCheckState" class="form-select fw-bold text-danger" onchange="filterAndRenderMap()">
-          <option value="chua_check" selected>🔴 Chưa check (Mặc định)</option>
-          <option value="da_check">🟢 Đã check</option>
-          <option value="tat_ca">⚡ Tất cả</option>
-        </select>
-      </div>
-      <div class="mb-3">
-        <label class="form-label fw-bold small">📍 Loại GPS:</label>
-        <select id="mapGpsType" class="form-select fw-bold text-primary" onchange="filterAndRenderMap()">
-          <option value="all" selected>⚡ Tất cả loại GPS</option>
-          <option value="GPS_Chinh">GPS chính</option>
-          <option value="GPS_CHECK_1_5">GPS check (1 tới 5)</option>
-          <option value="GPS_AP_NEW">Ấp New</option>
-          <option value="GPS_AP_OLD">Ấp Old</option>
-        </select>
-      </div>
-      <div class="mb-3">
-        <label class="form-label fw-bold small">Trạng Thái Thanh Toán:</label>
-        <select id="mapThanhToan" class="form-select" onchange="filterAndRenderMap()">
-          <option value="chua_thanh_toan" selected>Chưa thanh toán (Dưới 500k)</option>
-          <option value="da_thanh_toan_tren_500k">Đã thanh toán trên 500.000</option>
-        </select>
-      </div>
-      <div class="mb-3">
-        <label class="form-label fw-bold small">Tìm kiếm khách hàng:</label>
-        <input type="text" id="mapSearch" class="form-control" placeholder="Tên khách, số HĐ..." oninput="filterAndRenderMap()">
-      </div>
-      <button class="btn btn-outline-secondary w-100 mt-3" onclick="resetMapFilters()">🔄 Đặt lại lọc</button>
-    </div>
-  </div>
-
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbyE18UD0fm_YdzPATilQVU_0POGSJJ9xd3pkTz37092nkZNtjqvqL2r7UHIuYkwzNle/exec"; 
-    
-    let map = null; let markersGroup = null; let myLocationMarker = null; 
-    let myCoords = null; let allMapData = []; let filteredMapData = [];
-    let markerRegistry = {}; let focusedCustomerRowIndex = null;
-    
-    // Màu sắc ngẫu nhiên hoặc cố định để phân biệt khách hàng khi bật chế độ riêng
-    const customerColorPalette = ['#0d6efd', '#6f42c1', '#d63384', '#fd7e14', '#20c997', '#ffc107', '#198754'];
+    const API_URL = "https://script.google.com/macros/s/AKfycbwUE4uo5kihhrficlHTWtTeUDNy0n-vo49osANuoD17KzkueUzABRxUVgKzIwza-AW9/exec"; 
+    let map = null, markersGroup = null, myCoords = null, allMapData = [];
 
     window.onload = function() {
       initMap();
-      locateMyPosition();
-      loadMapDataAndRender();
+      loadMonthsAndData();
     };
 
     function initMap() {
-      if (map !== null) return;
       map = L.map('map').setView([10.030, 105.770], 13);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
       markersGroup = L.layerGroup().addTo(map);
-    }
-
-    function locateMyPosition() {
-      if (!navigator.geolocation) return;
       navigator.geolocation.getCurrentPosition(pos => {
         myCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        if (myLocationMarker) map.removeLayer(myLocationMarker);
-        myLocationMarker = L.marker([myCoords.lat, myCoords.lng], {
-          icon: L.divIcon({className: 'my-location-marker', iconSize: [16,16], iconAnchor: [8,8]})
-        }).addTo(map).bindPopup("<b>📍 Vị trí của bạn</b>");
+        L.marker([myCoords.lat, myCoords.lng], {
+          icon: L.divIcon({className: 'my-location-marker', iconSize: [16,16]})
+        }).addTo(map);
         map.setView([myCoords.lat, myCoords.lng], 15);
-        filterAndRenderMap(); 
-      }, () => {}, { enableHighAccuracy: true });
-    }
-
-    function calculateDistance(lat1, lon1, lat2, lon2) {
-      const R = 6371; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180;
-      const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
-      return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
-    }
-
-    function cleanGpsString(rawStr) {
-      if (!rawStr || typeof rawStr !== 'string') return '';
-      let str = rawStr.trim();
-      let parts = str.split(',');
-      if (parts.length === 4) return `${parts[0].trim()}.${parts[1].trim()}, ${parts[2].trim()}.${parts[3].trim()}`;
-      return str;
-    }
-
-    function parseGpsCoord(rawStr) {
-      let cleaned = cleanGpsString(rawStr);
-      if (!cleaned) return null;
-      let parts = cleaned.split(',').map(s => s.trim());
-      if (parts.length >= 2) {
-        let lat = parseFloat(parts[0]); let lng = parseFloat(parts[1]);
-        if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
-          return { lat: lat, lng: lng, displayStr: `${lat}, ${lng}` };
-        }
-      }
-      return null;
-    }
-
-    function getKeysForGpsType(gpsType) {
-      if (gpsType === 'GPS_Chinh') return ['GPS_Chinh'];
-      if (gpsType === 'GPS_CHECK_1_5') return ['GPS_1', 'GPS_2', 'GPS_3', 'GPS_4', 'GPS_5'];
-      if (gpsType === 'GPS_AP_NEW') return ['GPS_AP_NEW'];
-      if (gpsType === 'GPS_AP_OLD') return ['GPS_AP_OLD'];
-      return ['GPS_Chinh', 'GPS_1', 'GPS_2', 'GPS_3', 'GPS_4', 'GPS_5', 'GPS_AP_NEW', 'GPS_AP_OLD'];
-    }
-
-    async function loadMapDataAndRender() {
-      const btn = document.getElementById("loadMapBtn");
-      btn.innerText = "⏳ Đang tải..."; btn.disabled = true;
-      try {
-        const resMonths = await fetch(`${API_URL}?action=getMonths`);
-        const jsonMonths = await resMonths.json();
-        const select = document.getElementById("mapMonth");
-        select.innerHTML = '<option value="">-- Tất cả tháng --</option>';
-        
-        const now = new Date();
-        const currentMmyyyy = String(now.getMonth() + 1).padStart(2, '0') + now.getFullYear();
-
-        if(jsonMonths.months) {
-          jsonMonths.months.forEach(m => {
-            const lowerM = String(m).toLowerCase();
-            if (lowerM !== 'ap_new' && lowerM !== 'ap_old') {
-              select.innerHTML += `<option value="${m}">Kỳ tháng ${m}</option>`;
-            }
-          });
-        }
-        select.value = currentMmyyyy;
-
-        const resData = await fetch(`${API_URL}?action=getData`);
-        const jsonData = await resData.json();
-        allMapData = jsonData.data || [];
-        
-        if(map) map.invalidateSize();
-        filterAndRenderMap();
-        btn.innerText = "✅ Xong";
-        setTimeout(() => { btn.innerText = "🔄 Tải Dữ Liệu"; btn.disabled = false; }, 2000);
-      } catch (err) { console.error(err); btn.innerText = "❌ Lỗi"; btn.disabled = false; }
-    }
-
-    function filterAndRenderMap() {
-      if (!markersGroup || !map) return;
-      markersGroup.clearLayers();
-      markerRegistry = {};
-
-      const monthVal = document.getElementById("mapMonth").value;
-      const fCheckState = document.getElementById("mapCheckState").value;
-      const fGpsType = document.getElementById("mapGpsType").value;
-      const fThanhToan = document.getElementById("mapThanhToan").value;
-      const keyword = document.getElementById("mapSearch").value.toLowerCase();
-
-      const targetGpsKeys = getKeysForGpsType(fGpsType);
-      const gpsLabels = { 
-        'GPS_Chinh': 'GPS Chính', 'GPS_1': 'GPS 1', 'GPS_2': 'GPS 2', 
-        'GPS_3': 'GPS 3', 'GPS_4': 'GPS 4', 'GPS_5': 'GPS 5', 
-        'GPS_AP_NEW': 'GPS Ấp New', 'GPS_AP_OLD': 'GPS Ấp Old' 
-      };
-
-      filteredMapData = [];
-      let totalGpsCount = 0;
-
-      allMapData.forEach(item => {
-        if (monthVal && String(item.Thang).trim() !== String(monthVal).trim()) return;
-
-        // Nếu đang bật focus riêng một khách, chỉ render đúng khách đó
-        if (focusedCustomerRowIndex !== null && Number(item.rowIndex) !== Number(focusedCustomerRowIndex)) return;
-
-        const isChecked = (item.Check_GPS === 'Đã Check GPS' || item.Check_Ao === 'Đã Check Áo' || (Number(item.So_lan_check) || 0) > 0);
-        if (fCheckState === 'chua_check' && isChecked) return;
-        if (fCheckState === 'da_check' && !isChecked) return;
-
-        const paidAmount = Number(item.So_tien_thanh_toan) || 0;
-        if (fThanhToan === 'chua_thanh_toan' && paidAmount >= 500000) return;
-        if (fThanhToan === 'da_thanh_toan_tren_500k' && paidAmount < 500000) return;
-
-        if (keyword && !`${item.Ten_khach_hang || ''} ${item.so_hd || ''} ${item.sdt || ''}`.toLowerCase().includes(keyword)) return;
-
-        let minDistance = Infinity;
-        let hasValidGps = false;
-
-        // Xử lý ẩn các vị trí khác nếu khách có check ưu tiên
-        let activeKeys = targetGpsKeys;
-        if (item.Gps_Uu_Tien && focusedCustomerRowIndex === null) {
-          activeKeys = [item.Gps_Uu_Tien]; // Nếu có ưu tiên và không ở chế độ focus riêng, chỉ render điểm ưu tiên
-        }
-
-        activeKeys.forEach(key => {
-          const coord = parseGpsCoord(item[key]);
-          if (coord) {
-            hasValidGps = true;
-            if (myCoords) {
-              let dist = calculateDistance(myCoords.lat, myCoords.lng, coord.lat, coord.lng);
-              if (dist < minDistance) minDistance = dist;
-            }
-          }
-        });
-
-        if (!hasValidGps && focusedCustomerRowIndex === null) return;
-        filteredMapData.push({ ...item, _nearestDist: minDistance });
-
-        const isPaid = paidAmount > 0;
-        const opacity = isPaid ? 0.35 : 0.9;
-        let customerColor = customerColorPalette[item.rowIndex % customerColorPalette.length];
-
-        activeKeys.forEach((key) => {
-          const coord = parseGpsCoord(item[key]);
-          if (coord) {
-            totalGpsCount++;
-            let distHtml = myCoords ? `<br><b>📍 Khoảng cách:</b> <span class="text-danger fw-bold">${calculateDistance(myCoords.lat, myCoords.lng, coord.lat, coord.lng).toFixed(2)} km</span>` : '';
-            let labelText = key.includes('AP') ? (key.includes('NEW') ? 'New' : 'Old') : (key === 'GPS_Chinh' ? 'C' : key.replace('GPS_', ''));
-            
-            // Nếu là điểm ưu tiên, hiển thị màu đỏ đặc biệt
-            let markerColor = (item.Gps_Uu_Tien === key) ? '#dc3545' : customerColor;
-
-            let marker = L.marker([coord.lat, coord.lng], {
-              icon: L.divIcon({ className: 'gps-badge-icon', html: `<div class="gps-marker-num" style="background-color: ${markerColor}; opacity: ${opacity};">${labelText}</div>`, iconSize: [26,26], iconAnchor: [13,13] })
-            });
-
-            marker.bindPopup(`
-              <div style="font-size: 13px; min-width: 210px; line-height: 1.4;">
-                <b style="color:#0d6efd; font-size: 15px;">${item.Ten_khach_hang || ''}</b><br>
-                <small class="text-muted"><b>Điểm:</b> ${gpsLabels[key] || key} ${item.Gps_Uu_Tien === key ? '(🌟 Ưu tiên)' : ''}</small>
-                ${distHtml}
-                <hr class="my-1">
-                <b>Số HĐ:</b> <code>${item.so_hd || '---'}</code><br>
-                <b>Khả năng:</b> ${item.Trang_thai_hd || 'Chưa biết'}<br>
-                <hr class="my-1">
-                <a href="https://www.google.com/maps?q=${coord.lat},${coord.lng}" target="_blank" class="btn btn-sm btn-danger text-white w-100 fw-bold mt-1 p-2">🧭 DẪN ĐƯỜNG GOOGLE MAPS</a>
-              </div>
-            `);
-            markersGroup.addLayer(marker);
-            markerRegistry[`${item.rowIndex}_${key}`] = { marker: marker, latlng: [coord.lat, coord.lng] };
-          }
-        });
       });
-
-      // Sắp xếp danh sách bên trái ưu tiên tọa độ gần ta trước bên trên
-      filteredMapData.sort((a, b) => (a._nearestDist || Infinity) - (b._nearestDist || Infinity));
-
-      document.getElementById("statCustomers").innerText = filteredMapData.length;
-      document.getElementById("statGpsPoints").innerText = totalGpsCount;
-
-      renderSidebarList();
     }
 
-    function renderSidebarList() {
-      const container = document.getElementById("sidebarCustomerList");
-      if (filteredMapData.length === 0) {
-        container.innerHTML = `<div class="text-center text-muted py-4">Không tìm thấy khách hàng nào.</div>`;
-        return;
-      }
-
-      const fGpsType = document.getElementById("mapGpsType").value;
-      const targetGpsKeys = getKeysForGpsType(fGpsType);
-      const gpsLabels = { 
-        'GPS_Chinh': '📍 GPS Chính', 'GPS_1': '📍 GPS 1', 'GPS_2': '📍 GPS 2', 
-        'GPS_3': '📍 GPS 3', 'GPS_4': '📍 GPS 4', 'GPS_5': '📍 GPS 5', 
-        'GPS_AP_NEW': '🏡 GPS Ấp New', 'GPS_AP_OLD': '🏡 GPS Ấp Old' 
-      };
-
-      container.innerHTML = filteredMapData.map(item => {
-        let treeHtml = '';
-        targetGpsKeys.forEach(key => {
-          const coord = parseGpsCoord(item[key]);
-          if (coord) {
-            let isPriority = (item.Gps_Uu_Tien === key);
-            treeHtml += `
-              <div class="gps-tree-item ${isPriority ? 'border border-danger' : ''}" onclick="panToGpsMarker('${item.rowIndex}', '${key}')">
-                <span>${gpsLabels[key] || key} ${isPriority ? '🌟' : ''}</span>
-                <small class="font-monospace text-muted">${coord.displayStr}</small>
-              </div>
-            `;
-          }
-        });
-
-        let distStr = (item._nearestDist !== Infinity && item._nearestDist !== undefined) ? `<span class="badge bg-danger ms-1">📍 ${item._nearestDist.toFixed(2)} km</span>` : '';
-        let isFocused = (focusedCustomerRowIndex === item.rowIndex);
-
-        return `
-          <div class="customer-item-card">
-            <div class="d-flex justify-content-between align-items-start">
-              <div class="fw-bold text-primary mb-1">${item.Ten_khach_hang || 'Không tên'} ${distStr}</div>
-              <button class="btn btn-sm ${isFocused ? 'btn-danger' : 'btn-outline-primary'}" onclick="toggleCustomerFocus('${item.rowIndex}')">
-                ${isFocused ? '⏹️ Đang hiện riêng' : '👁️ Hiện riêng'}
-              </button>
-            </div>
-            <small class="text-secondary">SĐT: ${item.sdt || '---'} | HĐ: <code>${item.so_hd || '---'}</code></small>
-            <hr class="my-2">
-            <div class="small fw-bold text-dark mb-1">🌲 Danh Sách Tọa Độ GPS:</div>
-            <div class="ps-2 border-start border-3 border-primary">
-              ${treeHtml || '<i class="text-muted small">Chưa có tọa độ GPS.</i>'}
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function toggleCustomerFocus(rowIndex) {
-      if (focusedCustomerRowIndex === rowIndex) {
-        focusedCustomerRowIndex = null;
-      } else {
-        focusedCustomerRowIndex = rowIndex;
-      }
-      filterAndRenderMap();
-    }
-
-    function toggleAllCustomerFocus() {
-      focusedCustomerRowIndex = null;
-      filterAndRenderMap();
-    }
-
-    window.panToGpsMarker = function(rowIndex, key) {
-      const reg = markerRegistry[`${rowIndex}_${key}`];
-      if (reg) {
-        map.setView(reg.latlng, 17);
-        reg.marker.openPopup();
-      } else {
-        alert("Không tìm thấy tọa độ điểm GPS này trên bản đồ.");
-      }
-    };
-
-    function resetMapFilters() {
+    async function loadMonthsAndData() {
+      const res = await fetch(`${API_URL}?action=getMonths`);
+      const json = await res.json();
+      const sel = document.getElementById("mapMonth");
       const now = new Date();
       const currentMmyyyy = String(now.getMonth() + 1).padStart(2, '0') + now.getFullYear();
-      document.getElementById("mapMonth").value = currentMmyyyy; 
-      document.getElementById("mapCheckState").value = "chua_check";
-      document.getElementById("mapGpsType").value = "all";
-      document.getElementById("mapThanhToan").value = "chua_thanh_toan";
-      document.getElementById("mapSearch").value = ""; 
-      focusedCustomerRowIndex = null;
-      filterAndRenderMap();
+
+      if(json.months) {
+        json.months.forEach(m => {
+          if (m !== 'ap_new' && m !== 'ap_old') sel.innerHTML += `<option value="${m}">Kỳ ${m}</option>`;
+        });
+      }
+      sel.value = currentMmyyyy;
+      loadMapData();
+    }
+
+    async function loadMapData() {
+      const month = document.getElementById("mapMonth").value;
+      const res = await fetch(`${API_URL}?action=getData&month=${month}`);
+      const json = await res.json();
+      allMapData = json.data || [];
+      renderMapAndList();
+    }
+
+    function renderMapAndList() {
+      markersGroup.clearLayers();
+      const container = document.getElementById("sidebarCustomerList");
+      container.innerHTML = "";
+
+      allMapData.forEach(item => {
+        let hasGps = false;
+        ['GPS_Chinh', 'GPS_1', 'GPS_2', 'GPS_3', 'GPS_4', 'GPS_5'].forEach(k => {
+          let val = item[k];
+          if (val && val.includes(',')) {
+            hasGps = true;
+            let p = val.split(',').map(Number);
+            let marker = L.marker([p[0], p[1]], {
+              icon: L.divIcon({className: 'gps-marker-icon', html: `<div class="gps-marker-num bg-primary">C</div>`, iconSize: [26,26]})
+            }).addTo(markersGroup);
+            marker.bindPopup(`<b>${item.Ten_khach_hang}</b><br>HĐ: ${item.so_hd || item['số hđ']}`);
+          }
+        });
+
+        if (hasGps) {
+          container.innerHTML += `
+            <div class="customer-item-card">
+              <div class="fw-bold text-primary">${item.Ten_khach_hang}</div>
+              <small class="text-muted">HĐ: ${item.so_hd || item['số hđ']}</small>
+            </div>
+          `;
+        }
+      });
     }
   </script>
 </body>
