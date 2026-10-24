@@ -13,12 +13,7 @@
     .sub-section { border-left: 3px solid #0d6efd; padding-left: 10px; margin-top: 8px; }
     #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 1055; left: 20px; }
     #toast-container .toast { width: 100%; max-width: 100%; }
-    
-    #authOverlay {
-      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(0, 0, 0, 0.85); z-index: 9999;
-      display: flex; align-items: center; justify-content: center;
-    }
+    #authOverlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.85); z-index: 9999; display: flex; align-items: center; justify-content: center; }
     .btn, .form-select, .form-control { min-height: 42px; }
   </style>
 </head>
@@ -35,11 +30,10 @@
   </div>
 
   <div class="container py-3 px-2 d-none" id="mainContent">
-    
     <div class="d-flex justify-content-between align-items-center mb-2 bg-white p-2 rounded shadow-sm flex-wrap gap-1">
       <h5 class="mb-0 fw-bold text-primary">📋 Thu Hồi Nợ</h5>
       <div class="d-flex gap-1">
-        <a href="ap.html" class="btn btn-warning btn-sm fw-bold">🏡 Tab Ấp & Đồng Bộ</a>
+        <a href="ap.html" class="btn btn-warning btn-sm fw-bold">🏡 Quản Lý Ấp</a>
         <a href="map.html" class="btn btn-danger btn-sm fw-bold">🗺️ Bản đồ</a>
         <button class="btn btn-outline-secondary btn-sm" onclick="logout()">🔒</button>
       </div>
@@ -48,7 +42,7 @@
     <!-- BỘ ĐẾM THỐNG KÊ -->
     <div class="card p-2 mb-2 bg-white shadow-sm text-center">
       <div class="row small fw-bold">
-        <div class="col-6 border-end">🛡️ Tháng Này: <span id="countMonth" class="text-primary">0</span></div>
+        <div class="col-6 border-end">🛡️ Kỳ Tháng: <span id="countMonth" class="text-primary">0</span></div>
         <div class="col-6">📊 Tổng Lượt Check: <span id="countSuccess" class="text-success">0</span></div>
       </div>
     </div>
@@ -70,31 +64,18 @@
       <div class="row g-2">
         <div class="col-6">
           <label class="small fw-bold text-danger mb-1">📅 Kỳ tháng:</label>
-          <select id="gpsFilterMonth" class="form-select form-select-sm" onchange="filterData()">
-            <option value="">-- Tất cả tháng --</option>
-          </select>
+          <select id="gpsFilterMonth" class="form-select form-select-sm" onchange="loadCustomerData()"></select>
         </div>
         <div class="col-6">
           <label class="small fw-bold text-danger mb-1">🔍 Check:</label>
           <select id="gpsFilterCheckState" class="form-select form-select-sm fw-bold text-danger" onchange="filterData()">
-            <option value="ChuaCheck" selected>🔴 Chưa check (Mặc định)</option>
+            <option value="ChuaCheck" selected>🔴 Chưa check</option>
             <option value="DaCheckGps">🟢 Đã Check GPS</option>
             <option value="DaCheckAo">🟣 Đã Check Áo</option>
             <option value="">⚡ Tất cả</option>
           </select>
         </div>
-        <div class="col-12 mt-1">
-          <label class="small fw-bold text-danger mb-1">📍 Loại GPS:</label>
-          <select id="gpsFilterType" class="form-select form-select-sm fw-bold text-primary" onchange="filterData()">
-            <option value="all" selected>⚡ Tất cả loại GPS</option>
-            <option value="GPS_Chinh">GPS chính</option>
-            <option value="GPS_CHECK_1_5">GPS check (1 tới 5)</option>
-            <option value="GPS_AP_NEW">Ấp New</option>
-            <option value="GPS_AP_OLD">Ấp Old</option>
-          </select>
-        </div>
       </div>
-      <div class="text-center mt-2"><small class="text-muted" id="gpsStatusText">Đang định vị...</small></div>
     </div>
 
     <div id="customerCardContainer">
@@ -111,27 +92,15 @@
     <div class="offcanvas-body">
       <div class="mb-3">
         <label class="form-label fw-bold small">Kỳ tháng:</label>
-        <select id="filterMonth" class="form-select" onchange="filterData(); updateFilterCount();">
-          <option value="">-- Tất cả tháng --</option>
-        </select>
+        <select id="filterMonth" class="form-select" onchange="loadCustomerData(); updateFilterCount();"></select>
       </div>
       <div class="mb-3">
         <label class="form-label fw-bold small">Trạng Thái Check:</label>
         <select id="filterCheck" class="form-select fw-bold text-danger" onchange="filterData(); updateFilterCount();">
-          <option value="ChuaCheck" selected>🔴 Chưa check (Mặc định)</option>
+          <option value="ChuaCheck" selected>🔴 Chưa check</option>
           <option value="DaCheckGps">🟢 Đã Check GPS</option>
           <option value="DaCheckAo">🟣 Đã Check Áo</option>
           <option value="">⚡ Tất cả</option>
-        </select>
-      </div>
-      <div class="mb-3">
-        <label class="form-label fw-bold small">📍 Loại GPS:</label>
-        <select id="filterGpsType" class="form-select fw-bold text-primary" onchange="filterData(); updateFilterCount();">
-          <option value="all" selected>⚡ Tất cả loại GPS</option>
-          <option value="GPS_Chinh">GPS chính</option>
-          <option value="GPS_CHECK_1_5">GPS check (1 tới 5)</option>
-          <option value="GPS_AP_NEW">Ấp New</option>
-          <option value="GPS_AP_OLD">Ấp Old</option>
         </select>
       </div>
       <div class="mb-3">
@@ -141,41 +110,6 @@
           <option value="da_thanh_toan_tren_500k">Đã thanh toán trên 500.000</option>
         </select>
       </div>
-      <div class="mb-3">
-        <label class="form-label fw-bold small">Khả Năng Thanh Toán:</label>
-        <select id="filterTrangThaiHd" class="form-select" onchange="filterData(); updateFilterCount();">
-          <option value="">Tất cả</option>
-          <option value="Chưa biết">Chưa biết</option><option value="Ăn Giựt">Ăn Giựt</option><option value="Mất khả năng TT">Mất khả năng TT</option><option value="Đang kẹt tiền">Đang kẹt tiền</option><option value="Có khả năng">Có khả năng</option><option value="Hẹn Thanh Toán">Hẹn Thanh Toán</option><option value="Nhiều khả năng(Hẹn)">Nhiều khả năng(Hẹn)</option>
-        </select>
-      </div>
-      <div class="mb-3">
-        <label class="form-label fw-bold small">Tìm nhà:</label>
-        <select id="filterTimNha" class="form-select" onchange="filterData(); updateFilterCount();">
-          <option value="">Tất cả</option>
-          <option value="Chưa tìm">Chưa tìm</option>
-          <option value="Đã tới Ấp">Đã tới Ấp</option>
-          <option value="Bỏ địa phương">Bỏ địa phương</option>
-          <option value="Có người biết">Có người biết</option>
-          <option value="Gặp người thân">Gặp người thân</option>
-          <option value="Gặp khách hàng">Gặp khách hàng</option>
-        </select>
-      </div>
-      <div class="mb-3">
-        <label class="form-label fw-bold small">Độ khó khách hàng:</label>
-        <select id="filterDoKho" class="form-select" onchange="filterData(); updateFilterCount();">
-          <option value="">Tất cả</option>
-          <option value="Chưa biết">Chưa biết</option>
-          <option value="Dễ làm việc">Dễ làm việc</option>
-          <option value="Trung lập">Trung lập</option>
-          <option value="Khó Tính">Khó Tính</option>
-          <option value="Không hợp tác">Không hợp tác</option>
-          <option value="Bạo lực">Bạo lực</option>
-        </select>
-      </div>
-      <div class="mb-3">
-        <label class="form-label fw-bold small">🏠 Lọc theo Thường Trú:</label>
-        <input type="text" id="filterThuongTru" class="form-control" placeholder="Nhập tên xã, huyện, tỉnh..." oninput="filterData(); updateFilterCount();">
-      </div>
       <button class="btn btn-outline-danger w-100 mt-2" onclick="resetFilters()">🔄 Đặt lại bộ lọc</button>
     </div>
   </div>
@@ -184,11 +118,10 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbyE18UD0fm_YdzPATilQVU_0POGSJJ9xd3pkTz37092nkZNtjqvqL2r7UHIuYkwzNle/exec"; 
+    const API_URL = "https://script.google.com/macros/s/AKfycbwUE4uo5kihhrficlHTWtTeUDNy0n-vo49osANuoD17KzkueUzABRxUVgKzIwza-AW9/exec "; 
     const AUTH_KEY = "app_auth_session"; const AUTH_PASS = "124985"; const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
     let allRawData = []; let isGpsFilterActive = false; let myCurrentCoords = null;
-    let currentFilteredData = [];
 
     window.onload = function() { checkSession(); };
     function checkSession() {
@@ -225,8 +158,7 @@
 
         if(json.months) {
           json.months.forEach(m => {
-            const lowerM = String(m).toLowerCase();
-            if (lowerM !== 'ap_new' && lowerM !== 'ap_old') {
+            if (m !== 'ap_new' && m !== 'ap_old') {
               if(filterSel) filterSel.innerHTML += `<option value="${m}">Kỳ ${m}</option>`;
               if(gpsMonthSel) gpsMonthSel.innerHTML += `<option value="${m}">Kỳ ${m}</option>`;
             }
@@ -241,7 +173,8 @@
     }
 
     async function loadCustomerData() {
-      const res = await fetch(`${API_URL}?action=getData`);
+      const currentMonth = document.getElementById("filterMonth").value || document.getElementById("gpsFilterMonth").value;
+      const res = await fetch(`${API_URL}?action=getData&month=${currentMonth}`);
       const json = await res.json();
       allRawData = json.data || [];
       filterData();
@@ -266,147 +199,65 @@
       return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
     }
 
-    function cleanGpsString(rawStr) {
-      if (!rawStr || typeof rawStr !== 'string') return '';
-      let str = rawStr.trim();
-      let parts = str.split(',');
-      if (parts.length === 4) {
-        return `${parts[0].trim()}.${parts[1].trim()}, ${parts[2].trim()}.${parts[3].trim()}`;
-      }
-      return str;
-    }
-
     function parseGpsCoord(rawStr) {
-      let cleaned = cleanGpsString(rawStr);
-      if (!cleaned) return null;
-      let parts = cleaned.split(',').map(s => s.trim());
-      if (parts.length >= 2) {
-        let lat = parseFloat(parts[0]);
-        let lng = parseFloat(parts[1]);
-        if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
-          return { lat: lat, lng: lng };
-        }
-      }
+      if (!rawStr || typeof rawStr !== 'string') return null;
+      let parts = rawStr.split(',').map(s => parseFloat(s.trim()));
+      if (parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1])) return { lat: parts[0], lng: parts[1] };
       return null;
     }
 
-    function getKeysForGpsType(gpsType) {
-      if (gpsType === 'GPS_Chinh') return ['GPS_Chinh'];
-      if (gpsType === 'GPS_CHECK_1_5') return ['GPS_1', 'GPS_2', 'GPS_3', 'GPS_4', 'GPS_5'];
-      if (gpsType === 'GPS_AP_NEW') return ['GPS_AP_NEW'];
-      if (gpsType === 'GPS_AP_OLD') return ['GPS_AP_OLD'];
-      return ['GPS_Chinh', 'GPS_1', 'GPS_2', 'GPS_3', 'GPS_4', 'GPS_5', 'GPS_AP_NEW', 'GPS_AP_OLD'];
-    }
-
     function updateCounters(data) {
-      let totalCheck = 0; let monthC = 0;
-      const now = new Date();
-      const currentMonthStr = String(now.getMonth() + 1).padStart(2, '0') + now.getFullYear();
-      data.forEach(item => {
-        let count = Number(item.So_lan_check) || 0;
-        if (count === 0 && (item.Check_GPS === 'Đã Check GPS' || item.Check_Ao === 'Đã Check Áo')) {
-          count = 1;
-        }
-        totalCheck += count;
-        if (String(item.Thang).trim() === currentMonthStr) {
-          monthC++;
-        }
-      });
+      let totalCheck = 0;
+      data.forEach(item => { totalCheck += Number(item.So_lan_check) || 0; });
       document.getElementById("countSuccess").innerText = totalCheck; 
-      document.getElementById("countMonth").innerText = monthC;
+      document.getElementById("countMonth").innerText = document.getElementById("filterMonth").value;
     }
 
     function updateFilterCount() {
       let count = 0;
-      if(document.getElementById("filterMonth").value) count++;
       if(document.getElementById("filterThanhToan").value !== "chua_thanh_toan") count++;
       if(document.getElementById("filterCheck").value !== "ChuaCheck") count++;
-      if(document.getElementById("filterGpsType").value !== "all") count++;
-      if(document.getElementById("filterTrangThaiHd").value) count++;
-      if(document.getElementById("filterTimNha").value) count++;
-      if(document.getElementById("filterDoKho").value) count++;
-      if(document.getElementById("filterThuongTru").value) count++;
       document.getElementById("activeFilterCount").innerText = count;
     }
 
     function filterData() {
-      let filtered = [];
       const fThanhToan = document.getElementById("filterThanhToan").value;
+      const keyword = document.getElementById("searchKeyword").value.toLowerCase();
+      const fCheck = document.getElementById("filterCheck").value;
 
-      if (isGpsFilterActive) {
-        const monthVal = document.getElementById("gpsFilterMonth").value;
-        const checkState = document.getElementById("gpsFilterCheckState").value;
-        const gpsType = document.getElementById("gpsFilterType").value;
-        const keyword = document.getElementById("searchKeyword").value.toLowerCase();
-        const targetKeys = getKeysForGpsType(gpsType);
+      let filtered = allRawData.filter(item => {
+        let soHdStr = String(item.so_hd || item['số hđ'] || '').toLowerCase();
+        let tenKhStr = String(item.Ten_khach_hang || '').toLowerCase();
+        if (keyword && !tenKhStr.includes(keyword) && !soHdStr.includes(keyword)) return false;
+        
+        const paidAmount = Number(item.So_tien_thanh_toan) || 0;
+        if (fThanhToan === 'chua_thanh_toan' && paidAmount >= 500000) return false;
+        if (fThanhToan === 'da_thanh_toan_tren_500k' && paidAmount < 500000) return false;
 
-        filtered = allRawData.map(item => {
-          if (monthVal && String(item.Thang).trim() !== String(monthVal).trim()) return null;
-          if (keyword && !`${item.Ten_khach_hang || ''} ${item.so_hd || ''}`.toLowerCase().includes(keyword)) return null;
-          
-          const isChecked = (item.Check_GPS === 'Đã Check GPS' || item.Check_Ao === 'Đã Check Áo' || (Number(item.So_lan_check) || 0) > 0);
-          if (checkState === 'DaCheckGps' && item.Check_GPS !== 'Đã Check GPS') return null;
-          if (checkState === 'DaCheckAo' && item.Check_Ao !== 'Đã Check Áo') return null;
-          if (checkState === 'ChuaCheck' && isChecked) return null;
+        const isChecked = (item.Check_GPS === 'Đã Check GPS' || item.Check_Ao === 'Đã Check Áo' || (Number(item.So_lan_check) || 0) > 0);
+        if (fCheck === 'DaCheckGps' && item.Check_GPS !== 'Đã Check GPS') return false;
+        if (fCheck === 'DaCheckAo' && item.Check_Ao !== 'Đã Check Áo') return false;
+        if (fCheck === 'ChuaCheck' && isChecked) return false;
 
-          const paidAmount = Number(item.So_tien_thanh_toan) || 0;
-          if (fThanhToan === 'chua_thanh_toan' && paidAmount >= 500000) return null;
-          if (fThanhToan === 'da_thanh_toan_tren_500k' && paidAmount < 500000) return null;
+        return true;
+      });
 
+      if (isGpsFilterActive && myCurrentCoords) {
+        filtered = filtered.map(item => {
           let minDist = Infinity;
-          let hasMatchingGps = false;
-          if (myCurrentCoords) {
-            targetKeys.forEach(k => {
-              let coord = parseGpsCoord(item[k]);
-              if (coord) {
-                hasMatchingGps = true;
-                let d = calculateDistance(myCurrentCoords.lat, myCurrentCoords.lng, coord.lat, coord.lng);
-                if (d < minDist) minDist = d;
-              }
-            });
-          }
-          if (!hasMatchingGps || minDist === Infinity) return null;
+          ['GPS_Chinh', 'GPS_1', 'GPS_2', 'GPS_3', 'GPS_4', 'GPS_5'].forEach(k => {
+            let coord = parseGpsCoord(item[k]);
+            if (coord) {
+              let d = calculateDistance(myCurrentCoords.lat, myCurrentCoords.lng, coord.lat, coord.lng);
+              if (d < minDist) minDist = d;
+            }
+          });
           return { ...item, _nearestDist: minDist };
-        }).filter(Boolean);
+        }).filter(item => item._nearestDist !== Infinity);
         filtered.sort((a, b) => a._nearestDist - b._nearestDist);
-      } else {
-        const monthVal = document.getElementById("filterMonth").value;
-        const keyword = document.getElementById("searchKeyword").value.toLowerCase();
-        const fTrangThai = document.getElementById("filterTrangThaiHd").value;
-        const fTimNha = document.getElementById("filterTimNha").value;
-        const fDoKho = document.getElementById("filterDoKho").value;
-        const fThuongTru = document.getElementById("filterThuongTru").value.toLowerCase();
-        const fCheck = document.getElementById("filterCheck").value;
-        const gpsType = document.getElementById("filterGpsType").value;
-        const targetKeys = getKeysForGpsType(gpsType);
-
-        filtered = allRawData.filter(item => {
-          if (monthVal && String(item.Thang).trim() !== String(monthVal).trim()) return false;
-          if (keyword && !`${item.Ten_khach_hang || ''} ${item.so_hd || ''}`.toLowerCase().includes(keyword)) return false;
-          
-          const paidAmount = Number(item.So_tien_thanh_toan) || 0;
-          if (fThanhToan === 'chua_thanh_toan' && paidAmount >= 500000) return false;
-          if (fThanhToan === 'da_thanh_toan_tren_500k' && paidAmount < 500000) return false;
-
-          const isChecked = (item.Check_GPS === 'Đã Check GPS' || item.Check_Ao === 'Đã Check Áo' || (Number(item.So_lan_check) || 0) > 0);
-          if (fCheck === 'DaCheckGps' && item.Check_GPS !== 'Đã Check GPS') return false;
-          if (fCheck === 'DaCheckAo' && item.Check_Ao !== 'Đã Check Áo') return false;
-          if (fCheck === 'ChuaCheck' && isChecked) return false;
-
-          if (gpsType !== 'all') {
-            let hasKey = targetKeys.some(k => parseGpsCoord(item[k]));
-            if (!hasKey) return false;
-          }
-
-          if (fTrangThai && item.Trang_thai_hd !== fTrangThai) return false;
-          if (fTimNha && item.Trang_thai_tim_nha !== fTimNha) return false;
-          if (fDoKho && item.Muc_do_kho !== fDoKho) return false;
-          if (fThuongTru && !`${item.WARD_HO_KHAU || ''} ${item.WARD_HO_KHAU_AP_NEW || ''} ${item.WARD_HO_KHAU_AP_OLD || ''}`.toLowerCase().includes(fThuongTru)) return false;
-          return true;
-        });
       }
-      currentFilteredData = filtered;
-      renderCards(currentFilteredData);
+
+      renderCards(filtered);
     }
 
     function renderCards(data) {
@@ -415,311 +266,81 @@
 
       container.innerHTML = data.map((item, idx) => {
         let cardStyleClass = item.Check_GPS === 'Đã Check GPS' ? 'row-check-gps' : (item.Check_Ao === 'Đã Check Áo' ? 'row-check-ao' : '');
-        let distBadge = (isGpsFilterActive && item._nearestDist !== undefined) ? `<span class="badge bg-danger ms-1">📍 ${item._nearestDist.toFixed(2)} km</span>` : '';
-        let collapseId = `collapseCard_${idx}`;
+        let soHdVal = item.so_hd || item['số hđ'] || '';
         let paidStr = item.So_tien_thanh_toan ? Number(item.So_tien_thanh_toan).toLocaleString() + ' VNĐ' : 'Chưa';
-        let ngayQuaHan = item.Ngay_qua_han !== undefined && item.Ngay_qua_han !== "" ? item.Ngay_qua_han : '---';
-        let checkCount = Number(item.So_lan_check) || (item.Check_GPS === 'Đã Check GPS' || item.Check_Ao === 'Đã Check Áo' ? 1 : 0);
+        let ngayQuaHan = item.Ngay_qua_han !== undefined ? item.Ngay_qua_han : '---';
+        let checkCount = Number(item.So_lan_check) || 0;
 
         return `
           <div class="customer-card ${cardStyleClass}">
             <div class="d-flex justify-content-between align-items-start mb-2 gap-2">
               <div>
-                <h6 class="fw-bold text-primary mb-1">${item.Ten_khach_hang || 'Chưa có tên'} ${distBadge}</h6>
-                <small class="text-muted">HĐ: <code>${item.so_hd || ''}</code></small>
-                <button class="btn btn-sm btn-link p-0 ms-1" onclick="copyToClipboard('${item.so_hd}')">📋</button>
-              </div>
-              <div style="width: 135px;">
-                <select class="form-select form-select-sm fw-bold border-primary" onchange="updateFieldAndNotify(${item.rowIndex}, 'Trang_thai_tim_nha', this.value)">
-                  <option value="Chưa tìm" ${item.Trang_thai_tim_nha === 'Chưa tìm' ? 'selected' : ''}>⚪ Chưa tìm</option>
-                  <option value="Đã tới Ấp" ${item.Trang_thai_tim_nha === 'Đã tới Ấp' ? 'selected' : ''}>🟡 Đã tới Ấp</option>
-                  <option value="Bỏ địa phương" ${item.Trang_thai_tim_nha === 'Bỏ địa phương' ? 'selected' : ''}>🔴 Bỏ địa phương</option>
-                  <option value="Có người biết" ${item.Trang_thai_tim_nha === 'Có người biết' ? 'selected' : ''}>🔵 Có người biết</option>
-                  <option value="Gặp người thân" ${item.Trang_thai_tim_nha === 'Gặp người thân' ? 'selected' : ''}>🟣 Gặp người thân</option>
-                  <option value="Gặp khách hàng" ${item.Trang_thai_tim_nha === 'Gặp khách hàng' ? 'selected' : ''}>🟢 Gặp khách hàng</option>
-                </select>
+                <h6 class="fw-bold text-primary mb-1">${item.Ten_khach_hang || 'Chưa có tên'}</h6>
+                <small class="text-muted">HĐ: <code>${soHdVal}</code></small>
+                <button class="btn btn-sm btn-link p-0 ms-1" onclick="copyToClipboard('${soHdVal}')">📋</button>
               </div>
             </div>
 
             <div class="row g-2 mb-2">
               <div class="col-12 text-secondary small">
-                📞 SĐT: <b>${item.sdt || '---'}</b> | Kỳ: <b>${item.Thang || '---'}</b><br>
-                ⏰ Quá hạn: <b class="text-danger">${ngayQuaHan} ngày</b> | 📊 Lượt check: <b class="text-success">${checkCount} lần</b>
-              </div>
-              <div class="col-6">
-                <label class="small text-muted fw-bold mb-0">Khả Năng Thanh Toán:</label>
-                <select class="form-select form-select-sm" onchange="updateFieldAndNotify(${item.rowIndex}, 'Trang_thai_hd', this.value)">
-                  <option value="Chưa biết" ${item.Trang_thai_hd === 'Chưa biết' ? 'selected' : ''}>⚪ Chưa biết</option>
-                  <option value="Ăn Giựt" ${item.Trang_thai_hd === 'Ăn Giựt' ? 'selected' : ''}>⛔ Ăn Giựt</option>
-                  <option value="Mất khả năng TT" ${item.Trang_thai_hd === 'Mất khả năng TT' ? 'selected' : ''}>🔴 Mất khả năng TT</option>
-                  <option value="Đang kẹt tiền" ${item.Trang_thai_hd === 'Đang kẹt tiền' ? 'selected' : ''}>🟠 Đang kẹt tiền</option>
-                  <option value="Có khả năng" ${item.Trang_thai_hd === 'Có khả năng' ? 'selected' : ''}>🟢 Có khả năng</option>
-                  <option value="Hẹn Thanh Toán" ${item.Trang_thai_hd === 'Hẹn Thanh Toán' ? 'selected' : ''}>🔵 Hẹn Thanh Toán</option>
-                  <option value="Nhiều khả năng(Hẹn)" ${item.Trang_thai_hd === 'Nhiều khả năng(Hẹn)' ? 'selected' : ''}>🟣 Nhiều khả năng(Hẹn)</option>
-                </select>
-              </div>
-              <div class="col-6">
-                <label class="small text-muted fw-bold mb-0">Độ khó:</label>
-                <select class="form-select form-select-sm" onchange="updateFieldAndNotify(${item.rowIndex}, 'Muc_do_kho', this.value)">
-                  <option value="Chưa biết" ${item.Muc_do_kho === 'Chưa biết' ? 'selected' : ''}>⚪ Chưa biết</option>
-                  <option value="Dễ làm việc" ${item.Muc_do_kho === 'Dễ làm việc' ? 'selected' : ''}>🟢 Dễ làm việc</option>
-                  <option value="Trung lập" ${item.Muc_do_kho === 'Trung lập' ? 'selected' : ''}>🟡 Trung lập</option>
-                  <option value="Khó Tính" ${item.Muc_do_kho === 'Khó Tính' ? 'selected' : ''}>🟠 Khó Tính</option>
-                  <option value="Không hợp tác" ${item.Muc_do_kho === 'Không hợp tác' ? 'selected' : ''}>🔴 Không hợp tác</option>
-                  <option value="Bạo lực" ${item.Muc_do_kho === 'Bạo lực' ? 'selected' : ''}>⛔ Bạo lực</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="sub-section mb-2 text-secondary small">
-              <b>📍 Địa chỉ gốc:</b> ${item.WARD_HO_KHAU || '---'}<br>
-              <div class="mt-1">
-                <b class="text-dark">📍 Ấp New:</b> <span id="text_new_${item.rowIndex}">${item.WARD_HO_KHAU_AP_NEW || '<i>Chưa có</i>'}</span>
-                <button class="btn btn-sm p-0 ms-1 text-primary" onclick="toggleEdit('${item.rowIndex}', 'apnew')">✏️</button>
-                <div id="box_apnew_${item.rowIndex}" class="d-none mt-1">
-                  <div class="input-group input-group-sm">
-                    <input type="text" id="input_apnew_${item.rowIndex}" class="form-control" value="${item.WARD_HO_KHAU_AP_NEW || ''}">
-                    <button class="btn btn-success" onclick="saveInlineEdit('${item.rowIndex}', 'WARD_HO_KHAU_AP_NEW', 'input_apnew_${item.rowIndex}', 'apnew')">Lưu</button>
-                    <button class="btn btn-secondary" onclick="toggleEdit('${item.rowIndex}', 'apnew')">Hủy</button>
-                  </div>
-                </div>
-              </div>
-              <div class="mt-1">
-                <b class="text-dark">📍 Ấp Old:</b> <span id="text_old_${item.rowIndex}">${item.WARD_HO_KHAU_AP_OLD || '<i>Chưa có</i>'}</span>
-                <button class="btn btn-sm p-0 ms-1 text-primary" onclick="toggleEdit('${item.rowIndex}', 'apold')">✏️</button>
-                <div id="box_apold_${item.rowIndex}" class="d-none mt-1">
-                  <div class="input-group input-group-sm">
-                    <input type="text" id="input_apold_${item.rowIndex}" class="form-control" value="${item.WARD_HO_KHAU_AP_OLD || ''}">
-                    <button class="btn btn-success" onclick="saveInlineEdit('${item.rowIndex}', 'WARD_HO_KHAU_AP_OLD', 'input_apold_${item.rowIndex}', 'apold')">Lưu</button>
-                    <button class="btn btn-secondary" onclick="toggleEdit('${item.rowIndex}', 'apold')">Hủy</button>
-                  </div>
-                </div>
+                📞 SĐT: <b>${item.sdt || '---'}</b><br>
+                ⏰ Quá hạn: <b class="text-danger">${ngayQuaHan} ngày</b> | 📊 Lượt check tháng này: <b class="text-success">${checkCount} lần</b>
               </div>
             </div>
 
             <div class="my-2 pt-2 border-top small">
-              <div class="mb-1">
-                <span class="fw-bold text-success">📝 Ghi chú:</span> <span id="text_note_${item.rowIndex}">${item.Ghi_chu || '<i>Chưa có</i>'}</span>
-                <button class="btn btn-sm p-0 ms-1 text-primary" onclick="toggleEdit('${item.rowIndex}', 'note')">✏️</button>
-                <div id="box_note_${item.rowIndex}" class="d-none mt-1">
-                  <div class="input-group input-group-sm">
-                    <input type="text" id="input_note_${item.rowIndex}" class="form-control" value="${item.Ghi_chu || ''}">
-                    <button class="btn btn-success" onclick="saveInlineEdit('${item.rowIndex}', 'Ghi_chu', 'input_note_${item.rowIndex}', 'note')">Lưu</button>
-                    <button class="btn btn-secondary" onclick="toggleEdit('${item.rowIndex}', 'note')">Hủy</button>
-                  </div>
-                </div>
-              </div>
-
-              <div class="mb-1">
-                <span class="fw-bold text-danger">👤 Liên hệ:</span> <span id="text_contact_${item.rowIndex}">${item.Nguoi_lien_he || '<i>Chưa có</i>'}</span>
-                <button class="btn btn-sm p-0 ms-1 text-primary" onclick="toggleEdit('${item.rowIndex}', 'contact')">✏️</button>
-                <div id="box_contact_${item.rowIndex}" class="d-none mt-1">
-                  <div class="input-group input-group-sm">
-                    <input type="text" id="input_contact_${item.rowIndex}" class="form-control" value="${item.Nguoi_lien_he || ''}">
-                    <button class="btn btn-danger" onclick="saveInlineEdit('${item.rowIndex}', 'Nguoi_lien_he', 'input_contact_${item.rowIndex}', 'contact')">Lưu</button>
-                    <button class="btn btn-secondary" onclick="toggleEdit('${item.rowIndex}', 'contact')">Hủy</button>
-                  </div>
-                </div>
-              </div>
-
               <div>
-                <span class="fw-bold text-success">💰 Đã TT:</span> <span id="text_paid_${item.rowIndex}" class="fw-bold text-dark">${paidStr}</span>
-                <button class="btn btn-sm p-0 ms-1 text-primary" onclick="toggleEdit('${item.rowIndex}', 'paid')">✏️</button>
-                <div id="box_paid_${item.rowIndex}" class="d-none mt-1">
-                  <div class="input-group input-group-sm">
-                    <input type="number" id="input_paid_${item.rowIndex}" class="form-control" value="${item.So_tien_thanh_toan || ''}">
-                    <button class="btn btn-success" onclick="savePaidAmountInline('${item.rowIndex}')">Lưu</button>
-                    <button class="btn btn-secondary" onclick="toggleEdit('${item.rowIndex}', 'paid')">Hủy</button>
-                  </div>
-                </div>
+                <span class="fw-bold text-success">💰 Đã TT (Tháng này):</span> <span class="fw-bold text-dark">${paidStr}</span>
+                <button class="btn btn-sm btn-outline-primary py-0 ms-2" onclick="promptUpdatePayment(${item.rowIndex})">✏️ Nhập tiền</button>
               </div>
             </div>
 
-            <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
-              <div><span class="badge bg-primary">GPS Quản lý (8 Điểm & Ưu Tiên)</span></div>
-              <button class="btn btn-sm btn-outline-primary" type="button">🔽 Thao tác Check & GPS</button>
-            </div>
-
-            <div class="collapse mt-2" id="${collapseId}">
-              <div class="p-2 bg-light rounded border">
-                <div class="mb-3">
-                  <div class="small fw-bold mb-1">⚡ Xác thực thực địa:</div>
-                  <div class="d-flex gap-2">
-                    <button class="btn btn-sm text-white flex-fill" style="background-color: #6f42c1;" onclick="doCheckAo(${item.rowIndex})">🛡️ Check Áo</button>
-                    <button class="btn btn-sm btn-success flex-fill" onclick="doCheckGps(${item.rowIndex})">📍 Check GPS</button>
-                  </div>
-                </div>
-                <div class="sub-section">
-                  <div class="small fw-bold text-primary mb-1">🌐 Tọa độ GPS, Ấp & Checkbox Ưu Tiên:</div>
-                  ${renderGpsInputsMobile(item)}
-                </div>
+            <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
+              <div class="d-flex gap-2 w-100">
+                <button class="btn btn-sm text-white flex-fill" style="background-color: #6f42c1;" onclick="doCheck(${item.rowIndex}, 'AO')">🛡️ Check Áo</button>
+                <button class="btn btn-sm btn-success flex-fill" onclick="doCheck(${item.rowIndex}, 'GPS')">📍 Check GPS</button>
               </div>
             </div>
-
           </div>
         `;
       }).join('');
     }
 
-    function renderGpsInputsMobile(item) {
-      let html = '';
-      const gpsFields = ['GPS_Chinh', 'GPS_1', 'GPS_2', 'GPS_3', 'GPS_4', 'GPS_5', 'GPS_AP_NEW', 'GPS_AP_OLD'];
-      const labels = ['Chính', 'GPS 1', 'GPS 2', 'GPS 3', 'GPS 4', 'GPS 5', 'GPS New', 'GPS Old'];
-      
-      // 6 checkbox ưu tiên tương ứng với 6 điểm đầu (Chính, 1, 2, 3, 4, 5)
-      const priorityKeys = ['GPS_Chinh', 'GPS_1', 'GPS_2', 'GPS_3', 'GPS_4', 'GPS_5'];
-      const activePriorityKey = item.Gps_Uu_Tien || '';
-
-      gpsFields.forEach((key, idx) => {
-        const val = item[key] || '';
-        const hasData = val.includes(',');
-        const mapBtnStyle = hasData ? 'btn-danger' : 'btn-outline-secondary disabled';
-        const mapUrl = hasData ? `https://www.google.com/maps?q=${val}` : '#';
-
-        let priorityCheckboxHtml = '';
-        if (priorityKeys.includes(key)) {
-          const isChecked = (activePriorityKey === key);
-          const isDisabled = (activePriorityKey !== '' && !isChecked);
-          priorityCheckboxHtml = `
-            <div class="input-group-text bg-white" title="Chọn làm vị trí ưu tiên">
-              <input class="form-check-input mt-0" type="checkbox" ${isChecked ? 'checked' : ''} ${isDisabled ? 'disabled' : ''} onchange="togglePriorityGps(${item.rowIndex}, '${key}', this.checked)">
-              <span class="ms-1 small text-danger fw-bold" style="font-size:10px">Ưu tiên</span>
-            </div>
-          `;
-        }
-
-        html += `
-          <div class="input-group input-group-sm mb-1">
-            <span class="input-group-text" style="font-size:11px; width:75px;">${labels[idx]}</span>
-            <input type="text" id="input_${item.rowIndex}_${key}" class="form-control" value="${val}" placeholder="Lat, Lng">
-            ${priorityCheckboxHtml}
-            <button class="btn btn-outline-secondary" type="button" onclick="getCurrentLocation(${item.rowIndex}, '${key}')">📍</button>
-            <button class="btn btn-primary" type="button" onclick="saveGpsField(${item.rowIndex}, '${key}')">Lưu</button>
-            <a href="${mapUrl}" target="_blank" class="btn ${mapBtnStyle}">🗺️</a>
-          </div>
-        `;
-      });
-      return html;
-    }
-
-    async function togglePriorityGps(rowIndex, key, isChecked) {
-      const val = isChecked ? key : '';
-      await updateField(rowIndex, 'Gps_Uu_Tien', val);
-      showToast(isChecked ? `Đã đặt ${key} làm vị trí ưu tiên!` : `Đã hủy ưu tiên.`);
-      loadCustomerDataSilent(rowIndex);
-    }
-
-    function toggleEdit(rowIndex, type) { document.getElementById(`box_${type}_${rowIndex}`).classList.toggle('d-none'); }
-    
-    async function saveInlineEdit(rowIndex, fieldName, inputId, type) {
-      const inputEl = document.getElementById(inputId);
-      if (!inputEl) return;
-      const val = inputEl.value.trim();
-      toggleEdit(rowIndex, type);
-      const item = allRawData.find(d => d.rowIndex == rowIndex);
-      if (item) item[fieldName] = val;
-      await updateField(rowIndex, fieldName, val);
-      showToast("Đã lưu thành công!");
-      loadCustomerDataSilent(rowIndex);
-    }
-
-    async function savePaidAmountInline(rowIndex) {
-      const val = document.getElementById(`input_paid_${rowIndex}`).value;
-      toggleEdit(rowIndex, 'paid');
-      const item = allRawData.find(d => d.rowIndex == rowIndex);
-      if (item) item.So_tien_thanh_toan = val;
-      await updateField(rowIndex, 'So_tien_thanh_toan', val);
-      showToast("Đã lưu số tiền thanh toán!");
-      loadCustomerDataSilent(rowIndex);
-    }
-
-    async function doCheckAo(rowIndex) {
-      const now = new Date();
-      const today = now.toLocaleDateString('vi-VN');
-      const currentMmyyyy = String(now.getMonth() + 1).padStart(2, '0') + now.getFullYear();
-      
-      await updateField(rowIndex, 'Check_Ao', 'Đã Check Áo');
-      await updateField(rowIndex, 'Check_Time', today);
-      
-      // Ghi nhận số lượt check vào tab kỳ tháng mmyyyy đúng tháng
+    async function doCheck(rowIndex, type) {
+      const currentMonth = document.getElementById("filterMonth").value;
       await fetch(API_URL, {
         method: "POST",
-        body: JSON.stringify({ action: "recordCheckMonth", rowIndex: rowIndex, monthTab: currentMmyyyy })
+        body: JSON.stringify({ action: "recordCheckMonth", rowIndex: rowIndex, monthTab: currentMonth, type: type })
       });
-
-      showToast("🛡️ Đã thực hiện Check Áo & ghi nhận kỳ tháng!");
-      loadCustomerDataSilent(rowIndex);
+      showToast(`Đã ghi nhận Check ${type === 'GPS' ? 'GPS' : 'Áo'} vào kỳ ${currentMonth}!`);
+      loadCustomerData();
     }
 
-    async function doCheckGps(rowIndex) {
-      const now = new Date();
-      const today = now.toLocaleDateString('vi-VN');
-      const currentMmyyyy = String(now.getMonth() + 1).padStart(2, '0') + now.getFullYear();
-
-      navigator.geolocation.getCurrentPosition(async (pos) => {
-        const c = `${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`;
-        await updateField(rowIndex, 'Check_GPS', 'Đã Check GPS');
-        await updateField(rowIndex, 'Check_Time', today);
-        await updateField(rowIndex, 'GPS_Chinh', c);
-
+    async function promptUpdatePayment(rowIndex) {
+      let val = prompt("Nhập số tiền khách hàng đã thanh toán trong tháng này:");
+      if (val !== null && !isNaN(val)) {
+        const currentMonth = document.getElementById("filterMonth").value;
         await fetch(API_URL, {
           method: "POST",
-          body: JSON.stringify({ action: "recordCheckMonth", rowIndex: rowIndex, monthTab: currentMmyyyy })
+          body: JSON.stringify({ action: "recordCheckMonth", rowIndex: rowIndex, monthTab: currentMonth, type: "THANH_TOAN", paymentVal: Number(val) })
         });
-
-        showToast("📍 Đã thực hiện Check GPS & ghi nhận kỳ tháng!");
-        loadCustomerDataSilent(rowIndex);
-      }, () => {
-        showToast("Không thể lấy vị trí GPS thực tế!", "danger");
-      }, { enableHighAccuracy: true });
-    }
-
-    async function loadCustomerDataSilent(targetRowIndex) {
-      try {
-        const res = await fetch(`${API_URL}?action=getData`);
-        const json = await res.json();
-        allRawData = json.data || [];
-        filterData();
-        updateCounters(allRawData);
-      } catch(err) { console.error(err); }
+        showToast("Đã lưu số tiền thanh toán!");
+        loadCustomerData();
+      }
     }
 
     function copyToClipboard(text) { navigator.clipboard.writeText(text).then(() => showToast(`Đã copy: ${text}`)); }
-    function showToast(msg, type = "success") {
+    function showToast(msg) {
       const c = document.getElementById("toast-container");
       const id = "toast_" + Date.now();
-      c.insertAdjacentHTML('beforeend', `<div id="${id}" class="toast align-items-center text-white bg-${type === 'danger' ? 'danger' : 'success'} border-0 shadow show mb-2"><div class="d-flex"><div class="toast-body fw-bold">${msg}</div></div></div>`);
+      c.insertAdjacentHTML('beforeend', `<div id="${id}" class="toast align-items-center text-white bg-success border-0 shadow show mb-2"><div class="d-flex"><div class="toast-body fw-bold">${msg}</div></div></div>`);
       setTimeout(() => document.getElementById(id)?.remove(), 2500);
     }
     function resetFilters() {
-      const now = new Date();
-      const currentMmyyyy = String(now.getMonth() + 1).padStart(2, '0') + now.getFullYear();
-      document.getElementById("filterMonth").value = currentMmyyyy; 
       document.getElementById("filterThanhToan").value = "chua_thanh_toan";
       document.getElementById("filterCheck").value = "ChuaCheck";
-      document.getElementById("filterGpsType").value = "all";
       document.getElementById("searchKeyword").value = "";
-      document.getElementById("filterTrangThaiHd").value = ""; 
-      document.getElementById("filterTimNha").value = "";
-      document.getElementById("filterDoKho").value = "";
-      document.getElementById("filterThuongTru").value = "";
-      updateFilterCount(); filterData();
-    }
-    async function updateFieldAndNotify(r, f, v) { await updateField(r, f, v); showToast("Đã cập nhật!"); }
-    async function updateField(r, f, v) { await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "updateCustomer", rowIndex: r, data: { [f]: v } }) }); }
-    async function saveGpsField(r, k) { 
-      await updateField(r, k, document.getElementById(`input_${r}_${k}`).value); 
-      showToast(`Đã lưu ${k}!`); 
-      loadCustomerDataSilent(r);
-    }
-    function getCurrentLocation(r, k) {
-      navigator.geolocation.getCurrentPosition(pos => {
-        const c = `${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`;
-        document.getElementById(`input_${r}_${k}`).value = c; 
-        updateField(r, k, c); 
-        showToast(`Đã lấy vị trí ${k}!`);
-        loadCustomerDataSilent(r);
-      });
+      filterData();
     }
   </script>
 </body>
