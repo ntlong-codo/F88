@@ -297,14 +297,30 @@
               icon: L.divIcon({ className: 'gps-badge-icon', html: `<div class="gps-marker-num" style="background-color: ${markerColor}; opacity: ${opacity};">${labelText}</div>`, iconSize: [26,26], iconAnchor: [13,13] })
             });
 
+            // Chuẩn bị thông tin Địa chỉ & Ghi chú cho Popup
+            let ghiChuHtml = item.Ghi_chu ? `<br><b>📝 Ghi chú:</b> <span class="text-success fw-bold">${item.Ghi_chu}</span>` : '';
+            let thuongTruHtml = item.WARD_HO_KHAU ? `<br><b>🏠 Thường trú:</b> ${item.WARD_HO_KHAU}` : '';
+            let tamTruHtml = item.WARD_TAM_TRU ? `<br><b>🏢 Tạm trú:</b> ${item.WARD_TAM_TRU}` : '';
+            let apNewHtml = item.WARD_HO_KHAU_AP_NEW ? `<br><b>📍 Ấp New:</b> ${item.WARD_HO_KHAU_AP_NEW}` : '';
+            let apOldHtml = item.WARD_HO_KHAU_AP_OLD ? `<br><b>📍 Ấp Old:</b> ${item.WARD_HO_KHAU_AP_OLD}` : '';
+
             marker.bindPopup(`
-              <div style="font-size: 13px; min-width: 210px; line-height: 1.4;">
+              <div style="font-size: 13px; min-width: 230px; line-height: 1.4;">
                 <b style="color:#0d6efd; font-size: 15px;">${item.Ten_khach_hang || ''}</b><br>
                 <small class="text-muted"><b>Điểm:</b> ${gpsLabels[key] || key} ${item.Gps_Uu_Tien === key ? '(🌟 Ưu tiên)' : ''}</small>
                 ${distHtml}
                 <hr class="my-1">
                 <b>Số HĐ:</b> <code>${item.so_hd || '---'}</code><br>
+                <b>SĐT:</b> ${item.sdt || '---'}<br>
                 <b>Khả năng:</b> ${item.Trang_thai_hd || 'Chưa biết'}<br>
+                ${ghiChuHtml}
+                <hr class="my-1">
+                <div style="font-size: 12px;" class="text-secondary">
+                  ${thuongTruHtml}
+                  ${tamTruHtml}
+                  ${apNewHtml}
+                  ${apOldHtml}
+                </div>
                 <hr class="my-1">
                 <a href="https://www.google.com/maps?q=${coord.lat},${coord.lng}" target="_blank" class="btn btn-sm btn-danger text-white w-100 fw-bold mt-1 p-2">🧭 DẪN ĐƯỜNG GOOGLE MAPS</a>
               </div>
