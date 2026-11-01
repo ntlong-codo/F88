@@ -79,7 +79,7 @@
     <div class="offcanvas-body">
       <div class="mb-3">
         <label class="form-label fw-bold small">Kỳ tháng:</label>
-        <select id="mapMonth" class="form-select" onchange="filterAndRenderMap()"><option value="">-- Tất cả tháng --</option></select>
+        <select id="mapMonth" class="form-select" onchange="loadMapDataAndRender()"><option value="">-- Tất cả tháng --</option></select>
       </div>
       <div class="mb-3">
         <label class="form-label fw-bold small">Trạng Thái Check:</label>
@@ -124,13 +124,14 @@
     let map = null; let markersGroup = null; let myLocationMarker = null; 
     let myCoords = null; let allMapData = []; let filteredMapData = [];
     let markerRegistry = {}; let focusedCustomerRowIndex = null;
+    let isMonthsInitialized = false;
     
     const customerColorPalette = ['#0d6efd', '#6f42c1', '#d63384', '#fd7e14', '#20c997', '#ffc107', '#198754'];
 
     window.onload = function() {
       initMap();
       locateMyPosition();
-      loadMapDataAndRender();
+      loadMapDataAndRender(true);
     };
 
     function initMap() {
@@ -188,38 +189,50 @@
       return ['GPS_Chinh', 'GPS_1', 'GPS_2', 'GPS_3', 'GPS_4', 'GPS_5', 'GPS_AP_NEW', 'GPS_AP_OLD'];
     }
 
-    async function loadMapDataAndRender() {
+    async function loadMapDataAndRender(isInit = false) {
       const btn = document.getElementById("loadMapBtn");
-      btn.innerText = "⏳ Đang tải..."; btn.disabled = true;
+      if(btn) { btn.innerText = "⏳ Đang tải..."; btn.disabled = true; }
       try {
-        const resMonths = await fetch(`${API_URL}?action=getMonths`);
-        const jsonMonths = await resMonths.json();
-        const select = document.getElementById("mapMonth");
-        select.innerHTML = '<option value="">-- Tất cả tháng --</option>';
-        
-        const now = new Date();
-        const currentMmyyyy = String(now.getMonth() + 1).padStart(2, '0') + now.getFullYear();
+        if (!isMonthsInitialized || isInit) {
+          const resMonths = await fetch(`${API_URL}?action=getMonths`);
+          const jsonMonths = await resMonths.json();
+          const select = document.getElementById("mapMonth");
+          if (select) {
+            select.innerHTML = '<option value="">-- Tất cả tháng --</option>';
+            const now = new Date();
+            const currentMmyyyy = String(now.getMonth() + 1).padStart(2, '0') + now.getFullYear();
 
-        if(jsonMonths.months) {
-          jsonMonths.months.forEach(m => {
-            const lowerM = String(m).toLowerCase();
-            if (lowerM !== 'ap_new' && lowerM !== 'ap_old') {
-              select.innerHTML += `<option value="${m}">Kỳ tháng ${m}</option>`;
+            if(jsonMonths.months) {
+              jsonMonths.months.forEach(m => {
+                const lowerM = String(m).toLowerCase();
+                if (lowerM !== 'ap_new' && lowerM !== 'ap_old') {
+                  select.innerHTML += `<option value="${m}">Kỳ tháng ${m}</option>`;
+                }
+              });
             }
-          });
+            if (isInit) {
+              select.value = currentMmyyyy;
+            }
+          }
+          isMonthsInitialized = true;
         }
-        select.value = currentMmyyyy;
 
-        const currentMonth = select.value;
+        const currentMonth = document.getElementById("mapMonth").value;
         const resData = await fetch(`${API_URL}?action=getData&month=${currentMonth}`);
         const jsonData = await resData.json();
         allMapData = jsonData.data || [];
         
         if(map) map.invalidateSize();
         filterAndRenderMap();
-        btn.innerText = "✅ Xong";
-        setTimeout(() => { btn.innerText = "🔄 Tải Dữ Liệu"; btn.disabled = false; }, 2000);
-      } catch (err) { console.error(err); btn.innerText = "❌ Lỗi"; btn.disabled = false; }
+        
+        if(btn) { 
+          btn.innerText = "✅ Xong";
+          setTimeout(() => { btn.innerText = "🔄 Tải Dữ Liệu"; btn.disabled = false; }, 1500); 
+        }
+      } catch (err) { 
+        console.error(err); 
+        if(btn) { btn.innerText = "❌ Lỗi"; btn.disabled = false; } 
+      }
     }
 
     function filterAndRenderMap() {
@@ -227,7 +240,6 @@
       markersGroup.clearLayers();
       markerRegistry = {};
 
-      const monthVal = document.getElementById("mapMonth").value;
       const fCheckState = document.getElementById("mapCheckState").value;
       const fGpsType = document.getElementById("mapGpsType").value;
       const fThanhToan = document.getElementById("mapThanhToan").value;
@@ -441,7 +453,7 @@
       document.getElementById("mapThanhToan").value = "chua_thanh_toan";
       document.getElementById("mapSearch").value = ""; 
       focusedCustomerRowIndex = null;
-      filterAndRenderMap();
+      loadMapDataAndRender();
     }
   </script>
 </body>
