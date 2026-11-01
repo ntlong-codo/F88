@@ -119,7 +119,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbyRhPSNmIBmgcy5oGaxg24RFzLQlW1cZvppYzy2G2AWmeuwV4m-yA_RIDWSAlpf7VZJ/exec"; 
+    const API_URL = "https://script.google.com/macros/s/AKfycbxnnYt9sjWahiBSZfFSBKMATHsWbAkP_ybn59C1vUuRZDaf7ew8zDBXpnIvZyGVIyQ/exec"; 
     
     let map = null; let markersGroup = null; let myLocationMarker = null; 
     let myCoords = null; let allMapData = []; let filteredMapData = [];
@@ -291,10 +291,6 @@
             let labelText = key.includes('AP') ? (key.includes('NEW') ? 'New' : 'Old') : (key === 'GPS_Chinh' ? 'C' : key.replace('GPS_', ''));
             let markerColor = (item.Gps_Uu_Tien === key) ? '#dc3545' : customerColor;
 
-            // Xây dựng logic nút check dựa theo khoảng cách:
-            // < 2km: nút Check GPS
-            // > 5km: nút Check Áo
-            // 2km - 5km: hiển thị cả 2 nút
             let actionButtonsHtml = `<a href="https://www.google.com/maps?q=${coord.lat},${coord.lng}" target="_blank" class="btn btn-sm btn-danger text-white w-100 fw-bold mt-1 p-1">🧭 DẪN ĐƯỜNG GOOGLE MAPS</a>`;
             
             if (distanceVal !== null) {
@@ -314,12 +310,6 @@
               actionButtonsHtml += checkBtns;
             }
 
-            let ghiChuHtml = item.Ghi_chu ? `<br><b>📝 Ghi chú:</b> <span class="text-success fw-bold">${item.Ghi_chu}</span>` : '';
-            let thuongTruHtml = item.WARD_HO_KHAU ? `<br><b>🏠 Thường trú:</b> ${item.WARD_HO_KHAU}` : '';
-            let tamTruHtml = item.WARD_TAM_TRU ? `<br><b>🏢 Tạm trú:</b> ${item.WARD_TAM_TRU}` : '';
-            let apNewHtml = item.WARD_HO_KHAU_AP_NEW ? `<br><b>📍 Ấp New:</b> ${item.WARD_HO_KHAU_AP_NEW}` : '';
-            let apOldHtml = item.WARD_HO_KHAU_AP_OLD ? `<br><b>📍 Ấp Old:</b> ${item.WARD_HO_KHAU_AP_OLD}` : '';
-
             let marker = L.marker([coord.lat, coord.lng], {
               icon: L.divIcon({ className: 'gps-badge-icon', html: `<div class="gps-marker-num" style="background-color: ${markerColor}; opacity: ${opacity};">${labelText}</div>`, iconSize: [26,26], iconAnchor: [13,13] })
             });
@@ -332,15 +322,6 @@
                 <hr class="my-1">
                 <b>Số HĐ:</b> <code>${item.so_hd || '---'}</code><br>
                 <b>SĐT:</b> ${item.sdt || '---'}<br>
-                <b>Khả năng:</b> ${item.Trang_thai_hd || 'Chưa biết'}<br>
-                ${ghiChuHtml}
-                <hr class="my-1">
-                <div style="font-size: 12px;" class="text-secondary">
-                  ${thuongTruHtml}
-                  ${tamTruHtml}
-                  ${apNewHtml}
-                  ${apOldHtml}
-                </div>
                 <hr class="my-1">
                 ${actionButtonsHtml}
               </div>
