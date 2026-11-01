@@ -45,11 +45,14 @@
       </div>
     </div>
 
-    <!-- BỘ ĐẾM THỐNG KÊ -->
+    <!-- BỘ ĐẾM THỐNG KÊ CHI TIẾT -->
     <div class="card p-2 mb-2 bg-white shadow-sm text-center">
-      <div class="row small fw-bold">
-        <div class="col-6 border-end">🛡️ Tháng Này: <span id="countMonth" class="text-primary">0</span></div>
-        <div class="col-6">📊 Tổng Lượt Check: <span id="countSuccess" class="text-success">0</span></div>
+      <div class="row small fw-bold g-1">
+        <div class="col-4 border-end">📂 Tên Kỳ: <br><span id="statMonthName" class="text-primary fs-6">---</span></div>
+        <div class="col-4 border-end">☀️ Check Hôm Nay: <br><span id="statTodayCheck" class="text-warning fs-6">0</span></div>
+        <div class="col-4">📊 Tổng Check: <br><span id="statTotalCheck" class="text-success fs-6">0</span></div>
+        <div class="col-6 border-top pt-1">🔴 Chưa Check: <br><span id="statUnchecked" class="text-danger fs-6">0</span></div>
+        <div class="col-6 border-top pt-1">👥 Tổng Khách: <br><span id="statTotalCust" class="text-dark fs-6">0</span></div>
       </div>
     </div>
 
@@ -70,7 +73,7 @@
       <div class="row g-2">
         <div class="col-6">
           <label class="small fw-bold text-danger mb-1">📅 Kỳ tháng:</label>
-          <select id="gpsFilterMonth" class="form-select form-select-sm" onchange="filterData()">
+          <select id="gpsFilterMonth" class="form-select form-select-sm" onchange="loadCustomerData()">
             <option value="">-- Tất cả tháng --</option>
           </select>
         </div>
@@ -111,7 +114,7 @@
     <div class="offcanvas-body">
       <div class="mb-3">
         <label class="form-label fw-bold small">Kỳ tháng:</label>
-        <select id="filterMonth" class="form-select" onchange="filterData(); updateFilterCount();">
+        <select id="filterMonth" class="form-select" onchange="loadCustomerData(); updateFilterCount();">
           <option value="">-- Tất cả tháng --</option>
         </select>
       </div>
@@ -184,7 +187,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbxnnYt9sjWahiBSZfFSBKMATHsWbAkP_ybn59C1vUuRZDaf7ew8zDBXpnIvZyGVIyQ/exec"; 
+    const API_URL = "https://script.google.com/macros/s/AKfycbzr-XJa3xytpn3SdHctdk5mf1NY5XQz2ISKoNFhqGpI8Y6Lo9LnRNJNarouIHPH9pc/exec"; 
     const AUTH_KEY = "app_auth_session"; const AUTH_PASS = "124985"; const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
     let allRawData = []; let isGpsFilterActive = false; let myCurrentCoords = null;
@@ -241,11 +244,12 @@
     }
 
     async function loadCustomerData() {
-      const res = await fetch(`${API_URL}?action=getData`);
+      const currentMonth = document.getElementById("filterMonth").value || document.getElementById("gpsFilterMonth").value;
+      const res = await fetch(`${API_URL}?action=getData&month=${currentMonth}`);
       const json = await res.json();
       allRawData = json.data || [];
       filterData();
-      updateCounters(allRawData);
+      updateCounters(json.stats);
     }
 
     function toggleGpsFilterMode() {
@@ -298,22 +302,13 @@
       return ['GPS_Chinh', 'GPS_1', 'GPS_2', 'GPS_3', 'GPS_4', 'GPS_5', 'GPS_AP_NEW', 'GPS_AP_OLD'];
     }
 
-    function updateCounters(data) {
-      let totalCheck = 0; let monthC = 0;
-      const now = new Date();
-      const currentMonthStr = String(now.getMonth() + 1).padStart(2, '0') + now.getFullYear();
-      data.forEach(item => {
-        let count = Number(item.So_lan_check) || 0;
-        if (count === 0 && (item.Check_GPS === 'Đã Check GPS' || item.Check_Ao === 'Đã Check Áo')) {
-          count = 1;
-        }
-        totalCheck += count;
-        if (String(item.Thang).trim() === currentMonthStr) {
-          monthC++;
-        }
-      });
-      document.getElementById("countSuccess").innerText = totalCheck; 
-      document.getElementById("countMonth").innerText = monthC;
+    function updateCounters(stats) {
+      if (!stats) return;
+      document.getElementById("statMonthName").innerText = stats.monthName;
+      document.getElementById("statTodayCheck").innerText = stats.todayCheck;
+      document.getElementById("statTotalCheck").innerText = stats.totalCheck;
+      document.getElementById("statUnchecked").innerText = stats.unChecked;
+      document.getElementById("statTotalCust").innerText = stats.totalCust;
     }
 
     function updateFilterCount() {
@@ -370,7 +365,6 @@
         }).filter(Boolean);
         filtered.sort((a, b) => a._nearestDist - b._nearestDist);
       } else {
-        const monthVal = document.getElementById("filterMonth").value;
         const keyword = document.getElementById("searchKeyword").value.toLowerCase();
         const fTrangThai = document.getElementById("filterTrangThaiHd").value;
         const fTimNha = document.getElementById("filterTimNha").value;
@@ -381,7 +375,6 @@
         const targetKeys = getKeysForGpsType(gpsType);
 
         filtered = allRawData.filter(item => {
-          if (monthVal && String(item.Thang).trim() !== String(monthVal).trim()) return false;
           if (keyword && !`${item.Ten_khach_hang || ''} ${item.so_hd || ''}`.toLowerCase().includes(keyword)) return false;
           
           const paidAmount = Number(item.So_tien_thanh_toan) || 0;
@@ -635,24 +628,24 @@
     async function doCheckAo(rowIndex) {
       const now = new Date();
       const today = now.toLocaleDateString('vi-VN');
-      const currentMmyyyy = String(now.getMonth() + 1).padStart(2, '0') + now.getFullYear();
+      const currentMonth = document.getElementById("filterMonth").value || document.getElementById("gpsFilterMonth").value;
       
       await updateField(rowIndex, 'Check_Ao', 'Đã Check Áo');
       await updateField(rowIndex, 'Check_Time', today);
       
       await fetch(API_URL, {
         method: "POST",
-        body: JSON.stringify({ action: "recordCheckMonth", rowIndex: rowIndex, monthTab: currentMmyyyy, type: "AO" })
+        body: JSON.stringify({ action: "recordCheckMonth", rowIndex: rowIndex, monthTab: currentMonth, type: "AO" })
       });
 
       showToast("🛡️ Đã thực hiện Check Áo & ghi nhận kỳ tháng!");
-      loadCustomerDataSilent(rowIndex);
+      loadCustomerData();
     }
 
     async function doCheckGps(rowIndex) {
       const now = new Date();
       const today = now.toLocaleDateString('vi-VN');
-      const currentMmyyyy = String(now.getMonth() + 1).padStart(2, '0') + now.getFullYear();
+      const currentMonth = document.getElementById("filterMonth").value || document.getElementById("gpsFilterMonth").value;
 
       navigator.geolocation.getCurrentPosition(async (pos) => {
         const c = `${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`;
@@ -662,11 +655,11 @@
 
         await fetch(API_URL, {
           method: "POST",
-          body: JSON.stringify({ action: "recordCheckMonth", rowIndex: rowIndex, monthTab: currentMmyyyy, type: "GPS" })
+          body: JSON.stringify({ action: "recordCheckMonth", rowIndex: rowIndex, monthTab: currentMonth, type: "GPS" })
         });
 
         showToast("📍 Đã thực hiện Check GPS & ghi nhận kỳ tháng!");
-        loadCustomerDataSilent(rowIndex);
+        loadCustomerData();
       }, () => {
         showToast("Không thể lấy vị trí GPS thực tế!", "danger");
       }, { enableHighAccuracy: true });
@@ -674,11 +667,7 @@
 
     async function loadCustomerDataSilent(targetRowIndex) {
       try {
-        const res = await fetch(`${API_URL}?action=getData`);
-        const json = await res.json();
-        allRawData = json.data || [];
-        filterData();
-        updateCounters(allRawData);
+        loadCustomerData();
       } catch(err) { console.error(err); }
     }
 
@@ -701,7 +690,7 @@
       document.getElementById("filterTimNha").value = "";
       document.getElementById("filterDoKho").value = "";
       document.getElementById("filterThuongTru").value = "";
-      updateFilterCount(); filterData();
+      updateFilterCount(); loadCustomerData();
     }
     async function updateFieldAndNotify(r, f, v) { await updateField(r, f, v); showToast("Đã cập nhật!"); }
     async function updateField(r, f, v) { await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "updateCustomer", rowIndex: r, data: { [f]: v } }) }); }
