@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quản Lý Thu Hồi Nợ - Mobile</title>
+  <title>F88</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <style>
     body { background-color: #f4f6f9; font-size: 15px; }
@@ -37,10 +37,10 @@
   <div class="container py-3 px-2 d-none" id="mainContent">
     
     <div class="d-flex justify-content-between align-items-center mb-2 bg-white p-2 rounded shadow-sm flex-wrap gap-1">
-      <h5 class="mb-0 fw-bold text-primary">📋 Thu Hồi Nợ</h5>
+      <h5 class="mb-0 fw-bold text-primary">📋 F88</h5>
       <div class="d-flex gap-1">
-        <a href="ap.html" class="btn btn-warning btn-sm fw-bold">🏡 Tab Ấp & Đồng Bộ</a>
         <a href="map.html" class="btn btn-danger btn-sm fw-bold">🗺️ Bản đồ</a>
+        <a href="ap.html" class="btn btn-warning btn-sm fw-bold">🏡 Đồng Bộ</a>
         <button class="btn btn-outline-secondary btn-sm" onclick="logout()">🔒</button>
       </div>
     </div>
@@ -100,8 +100,12 @@
       <div class="text-center mt-2"><small class="text-muted" id="gpsStatusText">Đang định vị...</small></div>
     </div>
 
+    <!-- KHUNG HIỂN THỊ DANH SÁCH & TRẠNG THÁI LOADING -->
     <div id="customerCardContainer">
-      <div class="text-center py-5 text-muted">Đang tải dữ liệu...</div>
+      <div class="text-center py-5 text-muted">
+        <div class="spinner-border text-primary mb-2" role="status"></div>
+        <div>Đang tải dữ liệu khách hàng...</div>
+      </div>
     </div>
   </div>
 
@@ -121,10 +125,10 @@
       <div class="mb-3">
         <label class="form-label fw-bold small">Trạng Thái Check:</label>
         <select id="filterCheck" class="form-select fw-bold text-danger" onchange="filterData(); updateFilterCount();">
-          <option value="ChuaCheck" selected>🔴 Chưa check (Mặc định)</option>
+          <option value="">⚡ Tất cả (Mặc định)</option>
+          <option value="ChuaCheck">🔴 Chưa check</option>
           <option value="DaCheckGps">🟢 Đã Check GPS</option>
           <option value="DaCheckAo">🟣 Đã Check Áo</option>
-          <option value="">⚡ Tất cả</option>
         </select>
       </div>
       <div class="mb-3">
@@ -167,7 +171,6 @@
         <label class="form-label fw-bold small">Độ khó khách hàng:</label>
         <select id="filterDoKho" class="form-select" onchange="filterData(); updateFilterCount();">
           <option value="">Tất cả</option>
-          <option value="Chưa biết">Chưa biết</option>
           <option value="Dễ làm việc">Dễ làm việc</option>
           <option value="Trung lập">Trung lập</option>
           <option value="Khó Tính">Khó Tính</option>
@@ -244,12 +247,25 @@
     }
 
     async function loadCustomerData() {
+      const container = document.getElementById("customerCardContainer");
+      container.innerHTML = `
+        <div class="text-center py-5 text-muted bg-white rounded shadow-sm">
+          <div class="spinner-border text-primary mb-2" role="status"></div>
+          <div>Đang tải dữ liệu khách hàng...</div>
+        </div>
+      `;
+
       const currentMonth = document.getElementById("filterMonth").value || document.getElementById("gpsFilterMonth").value;
-      const res = await fetch(`${API_URL}?action=getData&month=${currentMonth}`);
-      const json = await res.json();
-      allRawData = json.data || [];
-      filterData();
-      updateCounters(json.stats);
+      try {
+        const res = await fetch(`${API_URL}?action=getData&month=${currentMonth}`);
+        const json = await res.json();
+        allRawData = json.data || [];
+        filterData();
+        updateCounters(json.stats);
+      } catch (err) {
+        console.error(err);
+        container.innerHTML = `<div class="text-center py-5 text-danger bg-white rounded shadow-sm">⚠️ Lỗi tải dữ liệu từ server. Vui lòng thử lại.</div>`;
+      }
     }
 
     function toggleGpsFilterMode() {
@@ -315,7 +331,7 @@
       let count = 0;
       if(document.getElementById("filterMonth").value) count++;
       if(document.getElementById("filterThanhToan").value !== "chua_thanh_toan") count++;
-      if(document.getElementById("filterCheck").value !== "ChuaCheck") count++;
+      if(document.getElementById("filterCheck").value !== "") count++;
       if(document.getElementById("filterGpsType").value !== "all") count++;
       if(document.getElementById("filterTrangThaiHd").value) count++;
       if(document.getElementById("filterTimNha").value) count++;
@@ -404,7 +420,10 @@
 
     function renderCards(data) {
       const container = document.getElementById("customerCardContainer");
-      if(data.length === 0) { container.innerHTML = `<div class="text-center py-5 text-muted bg-white rounded shadow-sm">Không tìm thấy khách hàng.</div>`; return; }
+      if(data.length === 0) { 
+        container.innerHTML = `<div class="text-center py-5 text-muted bg-white rounded shadow-sm">Không tìm thấy khách hàng phù hợp với bộ lọc hiện tại.</div>`; 
+        return; 
+      }
 
       container.innerHTML = data.map((item, idx) => {
         let cardStyleClass = item.Check_GPS === 'Đã Check GPS' ? 'row-check-gps' : (item.Check_Ao === 'Đã Check Áo' ? 'row-check-ao' : '');
@@ -683,7 +702,7 @@
       const currentMmyyyy = String(now.getMonth() + 1).padStart(2, '0') + now.getFullYear();
       document.getElementById("filterMonth").value = currentMmyyyy; 
       document.getElementById("filterThanhToan").value = "chua_thanh_toan";
-      document.getElementById("filterCheck").value = "ChuaCheck";
+      document.getElementById("filterCheck").value = "";
       document.getElementById("filterGpsType").value = "all";
       document.getElementById("searchKeyword").value = "";
       document.getElementById("filterTrangThaiHd").value = ""; 
